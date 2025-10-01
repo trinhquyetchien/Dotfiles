@@ -28,7 +28,7 @@ require("tiny-inline-diagnostic").setup({
             tabstop = 4,
         },
         show_all_diags_on_cursorline = false,
-        enable_on_insert = false,
+        enable_on_insert = true,
         enable_on_select = true,
         overflow = {
             mode = "wrap",
@@ -52,4 +52,5 @@ require("tiny-inline-diagnostic").setup({
     },
     disabled_ft = { "neo-tree" },
     enable_on_select = true,
+    enable_on_insert = true,
 })

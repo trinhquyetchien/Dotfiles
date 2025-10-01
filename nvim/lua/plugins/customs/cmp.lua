@@ -12,6 +12,7 @@ cmp.setup({
     window = {
         completion = cmp.config.window.bordered(),    -- menu có border
         documentation = cmp.config.window.bordered(), -- docs cũng có border
+        backgound_color = "#ffffff"
     },
     formatting = {
         format = function(entry, vim_item)

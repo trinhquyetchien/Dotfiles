@@ -22,7 +22,7 @@ require('lualine').setup {
         },
         -- Trung tâm
         lualine_c = {
-            { 'filename', file_status = true, path = 1, icon = '' },
+            { 'filename', file_status = true, path = 1, icon = '' },
             {
                 function()
                     local msg = 'No Active LSP'

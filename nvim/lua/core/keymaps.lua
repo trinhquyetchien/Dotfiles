@@ -52,6 +52,9 @@ keymap.set("v", "<Leader>d", '"_d<CR>', opts)
 --select all
 keymap.set({ "n", "v" }, "<Leader>a", "ggVG", opts)
 
+--select line
+keymap.set({"n", "v"}, "<Leader>i", "V", opts)
+
 --first file
 keymap.set({ "n", "v" }, "<Leader>ff", "gg", opts)
 
@@ -181,3 +184,8 @@ keymap.set('n', '<leader>ls', ':split | terminal live-server<CR>', opts)
 keymap.set("n", "<leader>xx", "<cmd>TroubleToggle<cr>", opts)
 keymap.set("n", "<leader>xw", "<cmd>TroubleToggle workspace_diagnostics<cr>", opts)
 keymap.set("n", "<leader>xd", "<cmd>TroubleToggle document_diagnostics<cr>", opts)
+
+--notifical
+keymap.set("n", "<leader>nt", function()
+  require("notify").history()
+end, {desc = "Notification history"})

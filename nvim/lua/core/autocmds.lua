@@ -1,19 +1,23 @@
 local api = vim.api
 
 --auto save
-api.nvim_create_autocmd("InsertLeave", {
+vim.api.nvim_create_autocmd("InsertLeave", {
     callback = function()
-        if vim.bo.modifiable and vim.bo.filetype ~= "gitcommit" then
-            --            pcall(function()
-            --                vim.lsp.buf.format({ async = false })
-            --            end)
             vim.cmd("silent! write")
-        end
-    end
+    end,
 })
 
+--flutter auto reload
+vim.api.nvim_create_autocmd("InsertLeave", {
+    pattern = "*.dart",
+    callback = function()
+        vim.cmd("silent! write")
+        vim.cmd("FlutterReload")
+        vim.notify("🔥 Flutter hot reload", vim.log.levels.INFO)
+    end,
+})
 
-vim.api.nvim_create_autocmd({"BufReadPost","FileType"}, {
+vim.api.nvim_create_autocmd({ "BufReadPost", "FileType" }, {
     callback = function()
         pcall(vim.lsp.buf_attach_client, 0, lsp_client_id)
     end
@@ -39,8 +43,6 @@ vim.api.nvim_create_autocmd({ "LspAttach", "LspDetach" }, {
 })
 
 --auto selection
-
-
 local ns_id = vim.api.nvim_create_namespace("VisualHighlight")
 
 local function highlight_visual_word()
@@ -48,14 +50,14 @@ local function highlight_visual_word()
 
     local start_pos = vim.fn.getpos("'<")
     local end_pos = vim.fn.getpos("'>")
-    local start_line, start_col = start_pos[2]-1, start_pos[3]-1
-    local end_line, end_col = end_pos[2]-1, end_pos[3]-1
+    local start_line, start_col = start_pos[2] - 1, start_pos[3] - 1
+    local end_line, end_col = end_pos[2] - 1, end_pos[3] - 1
 
-    local lines = vim.api.nvim_buf_get_lines(0, start_line, end_line+1, false)
+    local lines = vim.api.nvim_buf_get_lines(0, start_line, end_line + 1, false)
     if #lines == 0 then return end
 
     lines[#lines] = lines[#lines]:sub(1, end_col - (start_line == end_line and 0 or 0))
-    lines[1] = lines[1]:sub(start_col+1)
+    lines[1] = lines[1]:sub(start_col + 1)
     local word = table.concat(lines, "\n")
     if word == "" then return end
 
@@ -67,13 +69,13 @@ local function highlight_visual_word()
         while true do
             local s, e = string.find(text, pattern, start_idx, true)
             if not s then break end
-            vim.api.nvim_buf_add_highlight(0, ns_id, "Visual", lnum-1, s-1, e)
+            vim.api.nvim_buf_add_highlight(0, ns_id, "Visual", lnum - 1, s - 1, e)
             start_idx = e + 1
         end
     end
 end
 
-vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI", "ModeChanged"}, {
+vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI", "ModeChanged" }, {
     pattern = "*",
     callback = function()
         local mode = vim.fn.mode()
@@ -85,3 +87,12 @@ vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI", "ModeChanged"}, {
     end
 })
 
+--auto indent
+vim.api.nvim_create_autocmd("FileType", {
+  group = vim.api.nvim_create_augroup("NoHtmlIndent", { clear = true }),
+  pattern = "html",
+  callback = function()
+    vim.opt_local.indentexpr = ""
+    vim.opt_local.indentkeys = ""
+  end,
+})

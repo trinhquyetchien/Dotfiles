@@ -26,6 +26,50 @@ vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
     spec = {
+        --jdtls
+        {
+            "mfussenegger/nvim-jdtls",
+            ft = { "java" },
+        },
+
+        --lazy
+        {
+            'nvim-flutter/flutter-tools.nvim',
+            lazy = false,
+            dependencies = {
+                'nvim-lua/plenary.nvim',
+                'stevearc/dressing.nvim', -- optional for vim.ui.select
+            },
+            config = true,
+        },
+
+        --notify
+        {
+            "rcarriga/nvim-notify",
+            config = function()
+                require("plugins.customs.notify")
+            end
+        },
+
+        --noice
+        {
+            "folke/noice.nvim",
+            dependencies = { "rcarriga/nvim-notify", "MunifTanjim/nui.nvim" },
+            config = function()
+                require("noice").setup({
+                    lsp = {
+                        override = {
+                            ["vim.lsp.util.show_line_diagnostics"] = true,
+                            ["vim.lsp.util.show_cursor_diagnostics"] = true,
+                        }
+                    },
+                    notify = {
+                        enabled = true, -- bật notify backend
+                    },
+                })
+            end
+        },
+
         --lazygit.nvim
         {
             "kdheepak/lazygit.nvim",

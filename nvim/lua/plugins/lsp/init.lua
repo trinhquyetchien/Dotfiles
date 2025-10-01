@@ -9,7 +9,6 @@ require("plugins.lsp.ts_ls")
 local servers = {
     "lua_ls",
     "clangd",
-    "jdtls",
     "pyright",
     "jsonls",
     "marksman",

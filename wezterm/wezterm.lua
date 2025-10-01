@@ -18,9 +18,7 @@ config.enable_tab_bar = false
 
 config.warn_about_missing_glyphs = false
 
-config.keys = {
-
-}
+config.window_decorations = "RESIZE"
 
 local default_opacity = 0.8
 
