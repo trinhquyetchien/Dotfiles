@@ -1,6 +1,5 @@
 local lspconfig = require("lspconfig")
 local util = require("lspconfig.util")
-
 local on_attach = function(client, bufnr)
 end
 
@@ -16,7 +15,6 @@ local servers = {
     "cssls",
     "tailwindcss",
     "kotlin_language_server",
-    --"th_ls",
     "dartls",
 }
 

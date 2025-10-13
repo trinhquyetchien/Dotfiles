@@ -31,6 +31,12 @@ require("lazy").setup({
             "mfussenegger/nvim-jdtls",
             ft = { "java" },
         },
+        --venv
+        {
+            "linux-cultist/venv-selector.nvim",
+            dependencies = { "nvim-telescope/telescope.nvim" },
+            opts = {},
+        },
 
         --lazy
         {
