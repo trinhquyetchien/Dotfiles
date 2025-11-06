@@ -1,17 +1,15 @@
--- ~/.config/nvim/lua/lsp/ts_ls.lua
-local lspconfig = require("lspconfig")
-local util = require("lspconfig.util")
 
-lspconfig.ts_ls.setup({
-    cmd = { "typescript-language-server", "--stdio" },
-    filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact", "typescript.tsx" },
-    single_file_support = true,
-    root_dir = function(fname)
-        local root = util.root_pattern("tsconfig.json", "jsconfig.json", "package.json", ".git")(fname)
-        if type(root) == "table" then
-            return root[1] -- lấy path đầu tiên nếu lỡ trả về table
-        end
-        return root
-    end,
-    init_options = { hostInfo = "neovim" },
+vim.lsp.config("ts_ls", {
+  cmd = { "typescript-language-server", "--stdio" },
+  filetypes = {
+    "javascript",
+    "javascriptreact",
+    "javascript.jsx",
+    "typescript",
+    "typescriptreact",
+    "typescript.tsx",
+  },
+  root_dir = vim.fs.root(0, { "tsconfig.json", "jsconfig.json", "package.json", ".git" }),
+  single_file_support = true,
 })
+

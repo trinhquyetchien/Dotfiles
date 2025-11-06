@@ -1,7 +1,7 @@
 local catppuccin = require("catppuccin")
 
 catppuccin.setup({
-    flavour = "mocha", -- hoặc latte, frappe, macchiato
+    flavour = "macchiato", -- mocha hoặc latte, frappe, macchiato
     transparent_background = true,
     term_colors = false,
     styles = {
@@ -18,7 +18,7 @@ catppuccin.setup({
         lualine = false,
         native_lsp = {
             enabled = true,
-            virtual_text = {
+            virtual_text = { 
                 errors = { "italic" },
                 hints = { "italic" },
                 warnings = { "italic" },
@@ -35,6 +35,7 @@ catppuccin.setup({
         telescope = true,
         nvimtree = { enabled = true, show_root = true },
         which_key = true,
+        neotree = true,
         indent_blankline = { enabled = true, colored_indent_levels = true },
         dashboard = true,
         bufferline = true,
@@ -47,6 +48,16 @@ catppuccin.setup({
             CursorLineNr = { fg = colors.green, style = { "bold" } },
 
             CursorLine = { bg = "NONE" },
+
+            WinSeparator = { fg = "#FFFFFF", bg = "NONE", bold = true },
+
+            NeoTreeNormal = { bg = "NONE" },
+            NeoTreeNormalNC = { bg = "NONE" },
+            NeoTreeWinSeparator = { fg = "#FFFFFF", bg = "NONE", bold = true },
+            NeoTreeEndOfBuffer = { fg = colors.surface1 },
+
+            -- nếu dùng Neo-tree floating window
+            NeoTreeFloatBorder = { fg = "#FFFFFF", bg = "NONE" },
         }
     end,
 })

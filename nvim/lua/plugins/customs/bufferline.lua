@@ -13,5 +13,7 @@ require("bufferline").setup {
         show_buffer_close_icons = true,
         show_close_icon = true,
         separator_style = "thin",
+        close_command = "Bdelete! %d",
+        right_mouse_command = "Bdelete! %d",
     },
 }

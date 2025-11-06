@@ -26,6 +26,15 @@ vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
     spec = {
+        --keymap
+
+        {
+            "folke/which-key.nvim",
+            event = "VeryLazy",
+            config = function()
+                require("which-key").setup {}
+            end
+        },
         --jdtls
         {
             "mfussenegger/nvim-jdtls",
@@ -161,7 +170,7 @@ require("lazy").setup({
         {
             "rachartier/tiny-inline-diagnostic.nvim",
             event = "VeryLazy",
-            priority = 1000,
+            priority = 100,
             config = function()
                 require("plugins.customs.diagnostic")
             end
@@ -237,6 +246,7 @@ require("lazy").setup({
             },
             config = function()
                 require("plugins.customs.cmp")
+                require("plugins.customs.fxml")
             end,
         },
 
@@ -250,6 +260,9 @@ require("lazy").setup({
             end,
         },
 
+        {
+            "famiu/bufdelete.nvim"
+        },
         --dashboard
         {
             "goolord/alpha-nvim",
@@ -280,8 +293,8 @@ require("lazy").setup({
         },
         {
             "neovim/nvim-lspconfig",
+            version = false,
             config = function()
-                version = "0.2.1"
                 require("plugins.lsp.init")
             end,
         }

@@ -7,6 +7,14 @@ vim.api.nvim_create_autocmd("InsertLeave", {
     end,
 })
 
+--javafx
+vim.api.nvim_create_autocmd({"BufRead", "BufNewFile"}, {
+    pattern = "*.fxml",
+    callback = function()
+        vim.bo.filetype = "xml"  -- dùng XML syntax, indent, folding
+    end
+})
+
 --flutter auto reload
 vim.api.nvim_create_autocmd("InsertLeave", {
     pattern = "*.dart",

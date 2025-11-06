@@ -1,191 +1,180 @@
-local keymap = vim.keymap
-local mode = vim.fn.mode()
-local api = vim.api
+-- ========================
+-- 🔧 Keymaps Configuration
+-- ========================
 
+local keymap = vim.keymap
+local api = vim.api
 local opts = { noremap = true, silent = true }
 
---set leader key
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
---CORE
---split window and terminal
-keymap.set('n', '<leader>sh', ':split<CR>', opts)
-keymap.set('n', '<leader>sv', ':vsplit<CR>', opts)
-keymap.set('n', '<leader>tt', ':split | terminal<CR>i', opts)
-keymap.set('n', '<leader>tv', ':vsplit | terminal<CR>i', opts)
-keymap.set('n', '<leader>sx', ':close<CR>', opts)
+-- ====================================================
+-- 🧭 CORE MOVEMENT / WINDOW / BASIC EDITING
+-- ====================================================
+keymap.set("n", "<leader>w", ":w<CR>", { desc = "Save file" })
+keymap.set("n", "<leader>q", ":q<CR>", { desc = "Quit window" })
+keymap.set("n", "<leader>Q", ":qa!<CR>", { desc = "Quit all (force)" })
 
-keymap.set('n', '<C-h>', '<C-w>h', opts)
-keymap.set('n', '<C-j>', '<C-w>j', opts)
-keymap.set('n', '<C-k>', '<C-w>k', opts)
-keymap.set('n', '<C-l>', '<C-w>l', opts)
+-- Split
+keymap.set("n", "<leader>sh", ":split<CR>", { desc = "Horizontal split" })
+keymap.set("n", "<leader>sv", ":vsplit<CR>", { desc = "Vertical split" })
+keymap.set("n", "<leader>sx", ":close<CR>", { desc = "Close split" })
 
-keymap.set('n', '<C-Up>', ':resize +2<CR>', opts)
-keymap.set('n', '<C-Down>', ':resize -2<CR>', opts)
-keymap.set('n', '<C-Left>', ':vertical resize -2<CR>', opts)
-keymap.set('n', '<C-Right>', ':vertical resize +2<CR>', opts)
+-- Move between windows
+keymap.set("n", "<C-h>", "<C-w>h", opts)
+keymap.set("n", "<C-j>", "<C-w>j", opts)
+keymap.set("n", "<C-k>", "<C-w>k", opts)
+keymap.set("n", "<C-l>", "<C-w>l", opts)
 
---auto brackets
-keymap.set('x', '(', 'c(<C-r>")<Esc>', opts)
-keymap.set('x', '{', 'c{<C-r>"}<Esc>', opts)
-keymap.set('x', '[', 'c[<C-r>"]<Esc>', opts)
-keymap.set('x', '\'', "c'<C-r>'<Esc>", opts)
-keymap.set('x', '"', 'c"<C-r>"\"<Esc>', opts)
-keymap.set('x', '<', 'c<<C-r>><Esc>', opts)
+-- Resize
+keymap.set("n", "<C-Up>", ":resize +2<CR>", opts)
+keymap.set("n", "<C-Down>", ":resize -2<CR>", opts)
+keymap.set("n", "<C-Left>", ":vertical resize -2<CR>", opts)
+keymap.set("n", "<C-Right>", ":vertical resize +2<CR>", opts)
 
---copy and paste
---clipboard
-keymap.set({ "n", "v" }, "<C-c>", '"+y', opts)
-keymap.set({ "n", "v" }, "<C-v>", '"+p', opts)
-keymap.set({ "n", "v" }, "<C-x>", '"+d', opts)
+-- Terminal
+keymap.set("n", "<leader>tt", ":split | terminal<CR>i", { desc = "Open terminal (H)" })
+keymap.set("n", "<leader>tv", ":vsplit | terminal<CR>i", { desc = "Open terminal (V)" })
 
---resigter a
-keymap.set({ "n", "v" }, "<Leader>c", '"ay', opts)
-keymap.set({ "n", "v" }, "<Leader>v", '"ap', opts)
-keymap.set({ "n", "v" }, "<Leader>x", '"ad', opts)
+-- Undo / Redo
+keymap.set("n", "<C-z>", "u", { desc = "Undo" })
+keymap.set("n", "<C-y>", "<C-r>", { desc = "Redo" })
 
---delete and don't save
-keymap.set("n", "<Leader>d", '"_dd<CR>', opts)
-keymap.set("v", "<Leader>d", '"_d<CR>', opts)
+-- Search
+keymap.set("n", "n", "nzzzv", { desc = "Next match" })
+keymap.set("n", "N", "Nzzzv", { desc = "Prev match" })
+keymap.set("n", "<leader>h", ":nohlsearch<CR>", { desc = "Clear highlight" })
 
---select all
-keymap.set({ "n", "v" }, "<Leader>a", "ggVG", opts)
+-- ====================================================
+-- ✂️ EDIT / TEXT / REGISTER / SELECTION
+-- ====================================================
+-- Clipboard
+keymap.set({ "n", "v" }, "<C-c>", '"+y', { desc = "Copy to clipboard" })
+keymap.set({ "n", "v" }, "<C-v>", '"+p', { desc = "Paste from clipboard" })
+keymap.set({ "n", "v" }, "<C-x>", '"+d', { desc = "Cut to clipboard" })
 
---select line
-keymap.set({"n", "v"}, "<Leader>i", "V", opts)
+-- Registers (custom)
+keymap.set({ "n", "v" }, "<leader>c", '"ay', { desc = "Copy to register a" })
+keymap.set({ "n", "v" }, "<leader>v", '"ap', { desc = "Paste from register a" })
+keymap.set({ "n", "v" }, "<leader>x", '"ad', { desc = "Cut to register a" })
 
---first file
-keymap.set({ "n", "v" }, "<Leader>ff", "gg", opts)
+-- Delete no yank
+keymap.set({ "n", "v" }, "<leader>d", '"_d', { desc = "Delete (no yank)" })
 
---last file
-keymap.set({ "n", "v" }, "<Leader>lf", "G", opts)
+-- Select all / line / move
+keymap.set({ "n", "v" }, "<leader>a", "ggVG", { desc = "Select all" })
+keymap.set({ "n", "v" }, "<leader>i", "V", { desc = "Select line" })
 
---first line
-keymap.set({ "n", "v" }, "<Leader>fl", "^", opts)
+-- First/Last
+keymap.set({ "n", "v" }, "<leader>ff", "gg", { desc = "Go to top" })
+keymap.set({ "n", "v" }, "<leader>lf", "G", { desc = "Go to bottom" })
 
---last line
-keymap.set({ "n", "v" }, "<Leader>ll", "$", opts)
+-- Duplicate
+keymap.set({ "n", "v" }, "<leader>du", function()
+  local mode = vim.fn.mode()
+  if mode:match("[vV]") or mode == "\22" then
+    vim.api.nvim_feedkeys("y'>p", "n", false)
+  else
+    vim.api.nvim_feedkeys("yyp", "n", false)
+  end
+end, { desc = "Duplicate line/selection" })
 
---duplicate
-local function duplicate()
-    if mode == "v" or mode == "V" or mode == '\22' then
-        vim.api.nvim_feedkeys("y'>p", "n", false)
-    else
-        vim.api.nvim_feedkeys("yyp", "n", false)
-    end
-end
-keymap.set({ "n", "v" }, "<leader>du", duplicate, opts)
+-- Replace
+keymap.set("v", "<leader>ra", 'y:%s/<C-r>0//g<Left><Left>', { desc = "Replace selection (global)" })
+keymap.set("v", "<leader>r", [[:s/<C-r><C-w>//g<Left><Left>]], { desc = "Replace in selection" })
 
+-- ====================================================
+-- 🌳 FILES / NAVIGATION / PLUGINS
+-- ====================================================
+-- NeoTree
+keymap.set("n", "<leader>e", ":Neotree toggle<CR>", { desc = "File explorer" })
 
---undo
-keymap.set("n", "<C-z>", "u", opts)
+-- Telescope
+keymap.set("n", "<leader>sf", "<cmd>Telescope find_files<cr>", { desc = "Find files" })
+keymap.set("n", "<leader>sg", "<cmd>Telescope live_grep<cr>", { desc = "Live grep" })
+keymap.set("n", "<leader>sb", "<cmd>Telescope buffers<cr>", { desc = "Buffers" })
+keymap.set("n", "<leader>sh", "<cmd>Telescope help_tags<cr>", { desc = "Help tags" })
 
---redo
-keymap.set("n", "<C-y>", "<C-r>", opts)
-
--- Search next
-keymap.set("n", "n", "n", opts)
-
--- Search previous
-keymap.set("n", "p", "N", opts)
-
--- Replace visual selection in whole file
-vim.keymap.set("v", "<leader>ra", 'y:%s/<C-r>0//g<Left><Left>', opts)
-
---end highlight
-keymap.set("n", "<Leader>h", ":nohlsearch<CR>", opts)
-
---rewrite
-vim.keymap.set("v", "<Leader>r", [[:s/<C-r><C-w>//g<Left><Left>]], opts)
-
-
---CUSTOMS
-
---neotree
-keymap.set("n", "<Leader>e", ":Neotree toggle<CR>", opts)
-
---telescope
-keymap.set("n", "<leader>sf", "<cmd>Telescope find_files<cr>", opts)
-keymap.set("n", "<leader>sg", "<cmd>Telescope live_grep<cr>", opts)
-keymap.set("n", "<leader>sb", "<cmd>Telescope buffers<cr>", opts)
-keymap.set("n", "<leader>sh", "<cmd>Telescope help_tags<cr>", opts)
-
---treesitter
--- Treesitter Textobjects selection
-keymap.set({ 'o', 'x' }, '<Leader>of', ':<C-U>normal! v@function.outer<CR>', opts)
-keymap.set({ 'o', 'x' }, '<Leader>if', ':<C-U>normal! v@function.inner<CR>', opts)
-keymap.set({ 'o', 'x' }, '<Leader>oc', ':<C-U>normal! v@class.outer<CR>', opts)
-keymap.set({ 'o', 'x' }, '<Leader>ic', ':<C-U>normal! v@class.inner<CR>', opts)
-
--- Incremental Selection keymaps
-keymap.set('n', '<Leader>gn',
-    function() vim.cmd('lua require"nvim-treesitter.incremental_selection".init_selection()') end, opts)
-keymap.set('n', '<Leader>gr',
-    function() vim.cmd('lua require"nvim-treesitter.incremental_selection".node_incremental()') end, opts)
-keymap.set('n', '<Leader>gs',
-    function() vim.cmd('lua require"nvim-treesitter.incremental_selection".scope_incremental()') end, opts)
-keymap.set('n', '<Leader>gm',
-    function() vim.cmd('lua require"nvim-treesitter.incremental_selection".node_decremental()') end, opts)
-
---bufferline
-for i = 1, 100 do
-    keymap.set('n', '<Leader>' .. i, function()
-        require('bufferline').go_to_buffer(i, true)
-    end, opts)
+-- ====================================================
+-- 🧩 BUFFERLINE MANAGEMENT
+-- ====================================================
+for i = 1, 9 do
+  keymap.set("n", "<leader>" .. i, function()
+    require("bufferline").go_to_buffer(i, true)
+  end, { desc = "Go to buffer " .. i })
 end
 
-keymap.set('n', '<Leader>bn', ':BufferLineCycleNext<CR>', opts)
-keymap.set('n', '<Leader>bp', ':BufferLineCyclePrev<CR>', opts)
-keymap.set('n', '<Leader>bd', ':BufferLinePickClose<CR>', opts)
+keymap.set("n", "<leader>bn", ":BufferLineCycleNext<CR>", { desc = "Next buffer" })
+keymap.set("n", "<leader>bp", ":BufferLineCyclePrev<CR>", { desc = "Prev buffer" })
 
 local function smart_close_buffer()
-    local bufnr = api.nvim_get_current_buf()
-    local buffers = vim.fn.getbufinfo({ buflisted = 1 })
+  local bufnr = api.nvim_get_current_buf()
+  local buffers = vim.fn.getbufinfo({ buflisted = 1 })
 
-    if #buffers == 1 then
-        vim.cmd("bdelete")
-        vim.cmd("Alpha")
-    else
-        local next_buf = nil
-        for i, buf in ipairs(buffers) do
-            if buf.bufnr == bufnr then
-                next_buf = buffers[i + 1] or buffers[i - 1]
-                break
-            end
-        end
-
-        if next_buf then
-            vim.cmd("buffer " .. next_buf.bufnr)
-        end
-        vim.cmd("bdelete! " .. bufnr)
+  if #buffers == 1 then
+    vim.cmd("bdelete")
+    vim.cmd("Alpha")
+  else
+    local next_buf = nil
+    for i, buf in ipairs(buffers) do
+      if buf.bufnr == bufnr then
+        next_buf = buffers[i + 1] or buffers[i - 1]
+        break
+      end
     end
+    if next_buf then
+      vim.cmd("buffer " .. next_buf.bufnr)
+    end
+    vim.cmd("bdelete! " .. bufnr)
+  end
 end
 
-vim.keymap.set("n", "<Leader>bd", smart_close_buffer, opts)
+keymap.set("n", "<leader>bd", smart_close_buffer, { desc = "Smart close buffer" })
 
---lsp
-keymap.set("n", "gd", vim.lsp.buf.definition, opts)
-keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
-keymap.set("n", "gr", vim.lsp.buf.references, opts)
-keymap.set("n", "K", vim.lsp.buf.hover, opts)
-keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
-keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts)
-keymap.set("n", "<leader>f", function() vim.lsp.buf.format({ async = true }) end, opts)
-keymap.set({ "n", "v" }, "<leader>l", ":Lazy<CR>", opts)
+-- ====================================================
+-- ⚙️ LSP / DEVTOOLS / DEBUG / MASON / LAZY
+-- ====================================================
+-- LSP
+keymap.set("n", "gd", vim.lsp.buf.definition, { desc = "Go to definition" })
+keymap.set("n", "gD", vim.lsp.buf.declaration, { desc = "Go to declaration" })
+keymap.set("n", "gr", vim.lsp.buf.references, { desc = "List references" })
+keymap.set("n", "K", vim.lsp.buf.hover, { desc = "Hover docs" })
+keymap.set("n", "<leader>rn", vim.lsp.buf.rename, { desc = "Rename symbol" })
+keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, { desc = "Code actions" })
+keymap.set("n", "<leader>f", function() vim.lsp.buf.format({ async = true }) end, { desc = "Format file" })
 
---mason
-keymap.set({ "n", "v" }, "<leader>m", ":Mason<CR>", opts)
+-- Mason / Lazy
+keymap.set("n", "<leader>m", ":Mason<CR>", { desc = "Mason Installer" })
+keymap.set("n", "<leader>l", ":Lazy<CR>", { desc = "Lazy Manager" })
 
---live server
-keymap.set('n', '<leader>ls', ':split | terminal live-server<CR>', opts)
+-- Trouble Diagnostics
+keymap.set("n", "<leader>xx", "<cmd>TroubleToggle<cr>", { desc = "Toggle Trouble" })
+keymap.set("n", "<leader>xw", "<cmd>TroubleToggle workspace_diagnostics<cr>", { desc = "Workspace diagnostics" })
+keymap.set("n", "<leader>xd", "<cmd>TroubleToggle document_diagnostics<cr>", { desc = "Document diagnostics" })
 
--- Trouble keymaps
-keymap.set("n", "<leader>xx", "<cmd>TroubleToggle<cr>", opts)
-keymap.set("n", "<leader>xw", "<cmd>TroubleToggle workspace_diagnostics<cr>", opts)
-keymap.set("n", "<leader>xd", "<cmd>TroubleToggle document_diagnostics<cr>", opts)
+-- Treesitter incremental selection
+keymap.set("n", "<leader>ts", function()
+  require("nvim-treesitter.incremental_selection").init_selection()
+end, { desc = "TS init selection" })
 
---notifical
+-- Notification history
 keymap.set("n", "<leader>nt", function()
   require("notify").history()
-end, {desc = "Notification history"})
+end, { desc = "Notification history" })
+
+-- ====================================================
+-- 🧰 TOOLS / UTILITIES
+-- ====================================================
+-- Live Server
+keymap.set("n", "<leader>ls", ":split | terminal live-server<CR>", { desc = "Run Live Server" })
+
+-- Toggle relative number
+keymap.set("n", "<leader>nr", function()
+  vim.o.relativenumber = not vim.o.relativenumber
+end, { desc = "Toggle relative number" })
+
+-- Which-key show
+keymap.set("n", "<leader>km", function()
+  require("which-key").show()
+end, { desc = "Show keymap menu" })

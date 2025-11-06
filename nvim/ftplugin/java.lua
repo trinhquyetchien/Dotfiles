@@ -1,12 +1,15 @@
 local jdtls = require("jdtls")
 
 local home = os.getenv("HOME")
-local jdtls_path = home .. "/.local/share/nvim/mason/packages/jdtls"
-local launcher = vim.fn.glob(jdtls_path .. "/plugins/org.eclipse.equinox.launcher_*.jar")
-local config = jdtls_path .. "/config_linux"
-
--- mỗi project có workspace riêng
+local mason_path = home .. "/.local/share/nvim/mason/packages/jdtls"
+local launcher = vim.fn.glob(mason_path .. "/plugins/org.eclipse.equinox.launcher_*.jar")
+local config = mason_path .. "/config_linux"
 local workspace = home .. "/.cache/jdtls/workspace/" .. vim.fn.fnamemodify(vim.fn.getcwd(), ":p:h:t")
+
+local root_dir = require("jdtls.setup").find_root({ "pom.xml", "build.gradle", ".git" })
+if root_dir == "" then
+  root_dir = vim.fn.getcwd()
+end
 
 local opts = {
   cmd = {
@@ -24,7 +27,19 @@ local opts = {
     "-configuration", config,
     "-data", workspace,
   },
-  root_dir = require("jdtls.setup").find_root({ ".git", "mvnw", "gradlew", "pom.xml" }),
+  root_dir = root_dir,
+  settings = {
+    java = {
+      configuration = {
+        runtimes = {
+          {
+            name = "JavaSE-17",
+            path = "/usr/lib/jvm/java-17-openjdk",
+          },
+        },
+      },
+    },
+  },
 }
 
 jdtls.start_or_attach(opts)
