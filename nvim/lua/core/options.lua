@@ -3,7 +3,7 @@ local opt = vim.opt
 opt.fillchars = { eob = " " }
 opt.mouse = "a"
 opt.number = true
-opt.relativenumber = true
+opt.relativenumber = false
 opt.tabstop = 4
 opt.shiftwidth = 4
 opt.expandtab = true

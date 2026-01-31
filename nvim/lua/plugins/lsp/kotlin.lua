@@ -1,0 +1,20 @@
+local lspconfig = require("lspconfig")
+
+local configs = require("lspconfig.configs")
+
+if not configs.kotlin_lsp then
+    configs.kotlin_lsp = {
+        default_config = {
+            cmd = { "kotlin-lsp" },
+            filetypes = { "kotlin" },
+            root_dir = lspconfig.util.root_pattern("settings.gradle", "settings.gradle.kts", "build.gradle",
+                "build.gradle.kts", ".git"),
+            settings = {},
+        },
+    }
+end
+
+lspconfig.kotlin_lsp.setup({
+    on_attach = on_attach,
+    capabilities = capabilities,
+})

@@ -1,10 +1,11 @@
 [Desktop Entry]
+Version=1.0
 Name=WezTerm
-Comment=The GPU-accelerated terminal emulator
-Exec=/home/linuxbrew/.linuxbrew/bin/wezterm
-Icon=/home/trinhquyetchien/Dotfiles/wezterm/terminal.png
+Comment=Terminal emulator
+Exec=env WAYLAND_DISPLAY= /home/linuxbrew/.linuxbrew/bin/wezterm
+Icon=/home/trinhquyetchien/Icon/wezterm.png
 Terminal=false
 Type=Application
 Categories=System;Utility;TerminalEmulator;
 StartupNotify=true
-
+StartupWMClass=org.wezfurlong.wezterm

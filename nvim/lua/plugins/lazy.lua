@@ -26,8 +26,13 @@ vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
     spec = {
-        --keymap
+        --multi_cursor
 
+        {
+            "mg979/vim-visual-multi",
+            branch = "master",
+        },
+        --keymap
         {
             "folke/which-key.nvim",
             event = "VeryLazy",
@@ -53,8 +58,7 @@ require("lazy").setup({
             lazy = false,
             dependencies = {
                 'nvim-lua/plenary.nvim',
-                'stevearc/dressing.nvim', -- optional for vim.ui.select
-            },
+                'stevearc/dressing.nvim', },
             config = true,
         },
 

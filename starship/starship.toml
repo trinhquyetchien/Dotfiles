@@ -27,15 +27,11 @@ $line_break\
 [╰╴](fg:#505050)\
 [$character]($style)"""
 
-# move the rest of the prompt to the right
 right_format = """
 [$localip]($style)"""
 
-# Inserts a blank line between shell prompts:
 add_newline = true
 
-# Customization and activation of some modules:
-# Listed in the order of their position in the module row above
 [os]
 format = "[](fg:#252525)[$symbol]($style)(bg:#252525)"
 style = "fg:#AAAAAA bg:#252525"
@@ -116,14 +112,14 @@ disabled = false
 [sudo]
 format = '[ ](fg:red bold bg:#252525)[ $symbol]($style)'
 style = 'fg:red bold bg:#252525'
-symbol = '🛡️ '
+symbol = ' '
 disabled = false
 
 [directory]
 format = '[ ](fg:cyan bold bg:#252525)[$read_only]($read_only_style)[$repo_root]($repo_root_style)[$path ]($style)'
 style = 'fg:cyan bold bg:#252525'
 home_symbol = ' ~'
-read_only = ' '
+read_only = ' '
 read_only_style = 'fg:cyan bg:#252525'
 truncation_length = 3
 truncation_symbol = '…/'
@@ -152,7 +148,7 @@ symbol = "php "
 [python]
 format = "[\u3009${symbol}${pyenv_prefix}(${version} )(($virtualenv) )]($style)"
 style = 'fg:yellow bg:#252525'
-symbol = "\ue73c "
+symbol = "󰌠 "
 pyenv_version_name = true
 
 [git_branch]
@@ -177,17 +173,17 @@ disabled = false
 [git_status]
 format = '([$all_status$ahead_behind]($style))'
 style = 'fg:#E04D27 bg:#252525'
-conflicted = '[${count} ](fg:red bg:#252525)'
-ahead = '[⇡${count} ](fg:yellow bg:#252525)'
-behind = '[⇣${count} ](fg:yellow bg:#252525)'
-diverged = '[⇕${ahead_count}⇡${behind_count}⇣ ](fg:yellow bg:#252525)'
-up_to_date = '[✓ ](fg:green bg:#252525)'
-untracked = '[ﳇ${count} ](fg:red bg:#252525)'
-stashed = '[${count} ](fg:#A52A2A bg:#252525)'
-modified = '[${count} ](fg:#C8AC00 bg:#252525)'  # thay 󰷉 bằng  hoặc ✏️ tuỳ thích
-staged = '[${count} ](fg:green bg:#252525)'
-renamed = '[${count} ](fg:yellow bg:#252525)'
-deleted = '[${count} ](fg:red bg:#252525)'
+conflicted = '[ ${count} ](fg:red bg:#252525)'
+ahead = '[ ${count} ](fg:yellow bg:#252525)'
+behind = '[ ${count} ](fg:yellow bg:#252525)'
+diverged = '[ ${ahead_count} ${behind_count} ](fg:yellow bg:#252525)'
+up_to_date = '[ ](fg:green bg:#252525)'
+untracked = '[ ${count} ](fg:red bg:#252525)'
+stashed = '[ ${count} ](fg:#A52A2A bg:#252525)'
+modified = '[ ${count} ](fg:#C8AC00 bg:#252525)'
+staged = '[ ${count} ](fg:green bg:#252525)'
+renamed = '[ ${count} ](fg:yellow bg:#252525)'
+deleted = '[ ${count} ](fg:red bg:#252525)'
 disabled = false
 
 [fill]
@@ -208,7 +204,7 @@ disabled = false
 [memory_usage]
 format = '[ ](fg:#EA8054 bg:#252525)[$symbol$ram]($style)'
 style = 'fg:#EA8054 bg:#252525'
-symbol = ' '
+symbol = '󰍛 '
 disabled = false
 
 [cmd_duration]
@@ -225,12 +221,11 @@ disabled = true
 
 [time]
 disabled = false
-format = '[ ](fg:#8AB4F8 bg:#252525)[🕒 $time]($style)'
+format = '[ ](fg:#8AB4F8 bg:#252525)[ $time]($style)'
 style = 'fg:#8AB4F8 bg:#252525'
 time_format = "%H:%M:%S"
 
 [localip]
-format = '[直 $ip]($style)'
+format = '[󰩟 $ip]($style)'
 style = 'fg:#505050 bg:#252525'
 disabled = false
-
