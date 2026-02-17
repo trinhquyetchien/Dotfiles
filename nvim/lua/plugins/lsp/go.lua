@@ -1,9 +1,9 @@
-local lspconfig = require("lspconfig")
+local util = require("lspconfig.util")
 
-lspconfig.gopls.setup({
+vim.lsp.config("gopls", {
   cmd = { "gopls" },
   filetypes = { "go", "gomod", "gowork", "gotmpl" },
-  root_dir = lspconfig.util.root_pattern("go.work", "go.mod", ".git"),
+  root_markers = util.root_pattern("go.work", "go.mod", ".git"),
 
   settings = {
     gopls = {
@@ -18,3 +18,5 @@ lspconfig.gopls.setup({
     },
   },
 })
+
+vim.lsp.enable("gopls")

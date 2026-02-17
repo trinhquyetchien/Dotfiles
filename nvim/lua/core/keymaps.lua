@@ -66,6 +66,17 @@ keymap.set({ "n", "v" }, "<leader>d", '"_d', { desc = "Delete (no yank)" })
 keymap.set({ "n", "v" }, "<leader>a", "ggVG", { desc = "Select all" })
 keymap.set({ "n", "v" }, "<leader>i", "V", { desc = "Select line" })
 
+-- comments
+-- Normal mode
+keymap.set("n", "<leader>cm", function()
+    api.toggle.linewise.current()
+end, { desc = "Toggle comment line" })
+
+-- Visual mode
+keymap.set("v", "<leader>cm", function()
+    api.toggle.linewise(vim.fn.visualmode())
+end, { desc = "Toggle comment selection" })
+
 -- First/Last
 keymap.set({ "n", "v" }, "<leader>ff", "gg", { desc = "Go to top" })
 keymap.set({ "n", "v" }, "<leader>lf", "G", { desc = "Go to bottom" })
@@ -109,7 +120,7 @@ keymap.set("n", "<leader>bn", ":BufferLineCycleNext<CR>", { desc = "Next buffer"
 keymap.set("n", "<leader>bp", ":BufferLineCyclePrev<CR>", { desc = "Prev buffer" })
 
 local function smart_close_buffer()
-    local bufnr = api.nvim_get_current_buf()
+    local bufnr = api.vim_get_current_buf()
     local buffers = vim.fn.getbufinfo({ buflisted = 1 })
 
     if #buffers == 1 then

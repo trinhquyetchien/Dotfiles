@@ -26,6 +26,14 @@ vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
     spec = {
+        --comment
+        {
+            "numToStr/Comment.nvim",
+            config = function ()
+                require("plugins.customs.comment")
+            end
+        },
+
         --multi_cursor
 
         {
