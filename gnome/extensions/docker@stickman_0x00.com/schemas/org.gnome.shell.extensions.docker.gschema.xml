@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+
+	<enum id="org.gnome.shell.extensions.docker.enum-logo">
+		<value value="0" nick="default"/>
+		<value value="1" nick="black"/>
+		<value value="2" nick="transparent"/>
+		<value value="3" nick="white"/>
+	</enum>
+
+	<enum id="org.gnome.shell.extensions.docker.enum-menu-type">
+		<value value="0" nick="text"/>
+		<value value="1" nick="icons"/>
+		<value value="2" nick="quicksettings"/>
+	</enum>
+
+	<enum id="org.gnome.shell.extensions.docker.enum-show-value">
+		<value value="0" nick="both"/>
+		<value value="1" nick="containers"/>
+		<value value="2" nick="images"/>
+	</enum>
+
+	<schema id="org.gnome.shell.extensions.docker" path="/org/gnome/shell/extensions/docker/">
+		<key name="logo" enum="org.gnome.shell.extensions.docker.enum-logo">
+			<default>'white'</default>
+			<summary>Logo</summary>
+			<description>Choose between available logos.</description>
+		</key>
+
+		<key name="menu-type" enum="org.gnome.shell.extensions.docker.enum-menu-type">
+			<default>'quicksettings'</default>
+			<summary>Menu type</summary>
+			<description>Choose between the different types of menus.</description>
+		</key>
+
+		<key name="show-information" type="b">
+			<default>true</default>
+			<summary>Show information</summary>
+			<description>Show/Hide container information</description>
+		</key>
+
+		<key name="show-value" enum="org.gnome.shell.extensions.docker.enum-show-value">
+			<default>'both'</default>
+			<summary>Shows menus</summary>
+			<description>Show one or both menus</description>
+		</key>
+
+		<key name="show-ports" type="b">
+			<default>true</default>
+			<summary>Show ports</summary>
+			<description>Show/Hide container ports submenu</description>
+		</key>
+
+		<key name="terminal" type="s">
+			<default>'gnome-terminal -- bash -c'</default>
+			<summary>Terminal</summary>
+			<description>
+				Command to open terminal.
+
+				Default: gnome-terminal -- bash -c
+
+				Test: gnome-terminal -- bash -c 'echo test; read'
+
+				Test: terminator -e 'echo test; read'
+			</description>
+		</key>
+
+		<key name="submenu-text" type="i">
+			<default>100</default>
+			<summary>Submenu_text height</summary>
+			<description>How much height in pixels in the submenu text. Only visible when are more containers/images than the size screen.</description>
+		</key>
+
+		<key name="submenu-image" type="i">
+			<default>90</default>
+			<summary>Submenu_img height</summary>
+			<description>How much height in pixels in the submenu image. Only visible when are more containers/images than the size screen.</description>
+		</key>
+
+		<key name="up-containers-timer" type="i">
+			<default>5</default>
+			<summary>Counter refresh interval</summary>
+			<description>Delay to refresh the number of containers up. Set to 0 to disable.</description>
+		</key>
+
+		<key name="quicksettings-columns" type="i">
+			<default>3</default>
+			<summary>How many items per row</summary>
+			<description>Decides how many items per row the menu will show.</description>
+		</key>
+	</schema>
+</schemalist>

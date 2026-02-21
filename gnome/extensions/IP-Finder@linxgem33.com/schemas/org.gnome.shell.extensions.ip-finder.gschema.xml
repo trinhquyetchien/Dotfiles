@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+    <enum id="org.gnome.shell.extensions.ip-finder.position">
+        <value value="0" nick="left"/>
+        <value value="1" nick="center"/>
+        <value value="2" nick="right"/>
+    </enum>
+    <enum id="org.gnome.shell.extensions.ip-finder.api-service">
+        <value value="0" nick="ipinfo.io"/>
+        <value value="1" nick="ip-api.com"/>
+        <value value="2" nick="ipapi.co"/>
+        <value value="3" nick="ipwhois.io"/>
+    </enum>
+    <schema path="/org/gnome/shell/extensions/ip-finder/" id="org.gnome.shell.extensions.ip-finder">
+        <key type="i" name="update-notifier-project-version">
+            <default>0</default>
+            <summary>The project version of when an update notification was shown</summary>
+        </key>
+        <key type="b" name="update-notifier-enabled">
+            <default>true</default>
+            <summary>Enable/Disable the update notifications</summary>
+        </key>
+        <key type="b" name="enabled-on-vpn-only">
+            <default>false</default>
+            <summary>Only gather and show IP Info when VPN is detected</summary>
+        </key>
+        <key type="s" name="prefs-visible-page">
+            <default>''</default>
+            <summary>Which page to show when settings window is opened. Empty string is default.</summary>
+        </key>
+        <key type="s" name="map-tile-coords">
+            <default>''</default>
+            <summary>Coords for map tile image</summary>
+        </key>
+        <key name="api-service" enum="org.gnome.shell.extensions.ip-finder.api-service">
+            <default>'ipinfo.io'</default>
+            <summary>The API service to use to gather IP info</summary>
+        </key>
+        <key name="position-in-panel" enum="org.gnome.shell.extensions.ip-finder.position">
+            <default>'right'</default>
+            <summary>Position in Panel</summary>
+        </key>
+        <key type="i" name="position-in-panel-offset">
+            <default>0</default>
+            <summary>Position in Panel offset</summary>
+        </key>
+        <key name="panel-button-elements" type="aa{sv}">
+            <default>
+                [
+                    {'id': &lt;'VPN_STATUS_ICON'&gt;, 'enabled': &lt;true&gt;, 'colorize': &lt;true&gt;, 'always_show': &lt;true&gt;},
+                    {'id': &lt;'IP_ADDRESS'&gt;, 'enabled': &lt;true&gt;, 'colorize': &lt;false&gt;, 'mask_ip': &lt;false&gt;},
+                    {'id': &lt;'COUNTRY_FLAG'&gt;, 'enabled': &lt;true&gt;},
+                    {'id': &lt;'LOCATION'&gt;, 'enabled': &lt;false&gt;, 'colorize': &lt;false&gt;, 'show_city': &lt;true&gt;, 'show_region': &lt;false&gt;, 'show_country': &lt;true&gt;}
+                ]
+            </default>
+        </key>
+        <key type="b" name="vpn-status-in-menu">
+            <default>true</default>
+            <summary>Show VPN status in the popupmenu</summary>
+        </key>
+        <key type="b" name="mask-ip-in-menu">
+            <default>false</default>
+            <summary>Mask the IP address in the popupmenu</summary>
+        </key>
+        <key type="as" name="current-connection-ids">
+            <default>[]</default>
+            <summary>Store the current connection ID</summary>
+        </key>
+        <key type="as" name="vpn-connections-whitelist">
+            <default>[]</default>
+            <summary>Whitelist for connections not automatically recognized as a VPN</summary>
+        </key>
+        <key type="as" name="vpn-connections-blacklist">
+            <default>[]</default>
+            <summary>Blacklist for connections not to be automatically recognized as a VPN</summary>
+        </key>
+        <key type="b" name="show-menu-buttons">
+            <default>true</default>
+            <summary>Show Settings, Copy IP, and Refresh buttons in the popupmenu</summary>
+        </key>
+        <key type="b" name="show-map-tile">
+            <default>true</default>
+            <summary>Show a map tile of the IP location in the popupmenu</summary>
+        </key>
+        <key type="i" name="tile-zoom">
+            <default>10</default>
+            <summary>Zoom level for map tile.</summary>
+            <range min="7" max="13"/>
+        </key>
+        <key type="i" name="tile-size">
+            <default>250</default>
+            <summary>Zoom level for map tile.</summary>
+            <range min="100" max="400"/>
+        </key>
+        <key type="i" name="tile-border-radius">
+            <default>20</default>
+            <summary>Border radius for the map tile.</summary>
+            <range min="0" max="999"/>
+        </key>
+        <key type="as" name="vpn-connection-types">
+            <default>['vpn', 'wireguard']</default>
+            <summary>Connection types to flag as a VPN connection</summary>
+        </key>
+    </schema>
+</schemalist>

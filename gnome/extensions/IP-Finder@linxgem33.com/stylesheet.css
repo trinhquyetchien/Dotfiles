@@ -1,0 +1,31 @@
+.ip-info-key {
+    color: #5294e2;
+}
+
+.ip-info-vpn-on {
+    color: #6ae252;
+}
+
+.ip-info-vpn-off {
+    color: #e25252;
+}
+
+.ip-info-box {
+    min-width: 320px;
+}
+
+.ip-info-value {
+    color: #838A85;
+}
+
+.tooltip-label{
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    padding: 4px 10px;
+    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+    max-width: 400px;
+    min-height: 0px;
+}
+
+.map-tile-round{
+    background-size: contain;
+}

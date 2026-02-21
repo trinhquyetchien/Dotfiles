@@ -1,0 +1,12 @@
+/* Add your custom extension styling here */
+.running {
+	color: green;
+}
+
+.stop {
+	color: red;
+}
+
+.compose {
+	color: cyan;
+}
