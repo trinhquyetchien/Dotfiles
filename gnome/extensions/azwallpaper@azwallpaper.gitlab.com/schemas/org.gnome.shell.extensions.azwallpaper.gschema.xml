@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+    <enum id='org.gnome.shell.extensions.azwallpaper.slideshow-queue-sort-type'>
+        <value value='0' nick='Random'/>
+        <value value='1' nick='A-Z'/>
+        <value value='2' nick='Z-A'/>
+        <value value='3' nick='Newest'/>
+        <value value='4' nick='Oldest'/>
+    </enum>
+    <schema id="org.gnome.shell.extensions.azwallpaper" path="/org/gnome/shell/extensions/azwallpaper/">
+        <key type="i" name="update-notifier-project-version">
+            <default>0</default>
+            <summary>The project version of when an update notification was shown</summary>
+        </key>
+        <key type="b" name="update-notifier-enabled">
+            <default>true</default>
+            <summary>Enable/Disable the update notifications</summary>
+        </key>
+        <key type="s" name="prefs-visible-page">
+            <default>''</default>
+            <summary>Which page to show when settings window is opened. Empty string is default.</summary>
+        </key>
+        <key type="b" name="bing-wallpaper-download">
+            <default>false</default>
+            <summary>Download the BING wallpaper of the day. Queries BING on 12hour interval.</summary>
+        </key>
+        <key type="b" name="bing-wallpaper-notify-on-error">
+            <default>false</default>
+            <summary>Notify of error on BING wallpaper of the day download.</summary>
+        </key>
+        <key type="s" name="bing-download-directory">
+            <default>''</default>
+            <summary>The directory of the downloaded BING wallpapers.</summary>
+        </key>
+        <key type="as" name="bing-wallpapers-downloaded">
+            <default>[]</default>
+            <summary>Store the path to each wallpaper downloaded. Used to delete images if bing-wallpaper-delete-old enabled.</summary>
+        </key>
+        <key type="i" name="bing-wallpaper-download-count">
+            <range min="1" max="8"/>
+            <default>8</default>
+            <summary>How many BING wallpapers to download.</summary>
+        </key>
+        <key type="s" name="bing-wallpaper-market">
+            <default>'Automatic'</default>
+            <summary>Market for the BING wallpaper</summary>
+        </key>
+        <key type='s' name="bing-wallpaper-resolution">
+            <default>'UHD'</default>
+            <summary>Bing Wallpapper image resolution. Valid resolutions:
+            'UHD', '1920x1200', '1920x1080', '1366x768', '1280x768', '1280x720', '1024x768', '800x600'</summary>
+        </key>
+        <key type="(bi)" name="bing-wallpaper-delete-old">
+            <default>(false, 14)</default>
+            <summary>Delete previously downloaded wallpapers.</summary>
+        </key>
+        <key type="t" name="bing-last-data-fetch">
+            <default>0</default>
+            <summary>The JS Date.Now() time of last BING data fetch.</summary>
+        </key>
+        <key type="s" name="slideshow-directory">
+            <default>''</default>
+            <summary>The directory of the slideshow wallpapers.</summary>
+        </key>
+        <key enum="org.gnome.shell.extensions.azwallpaper.slideshow-queue-sort-type" name="slideshow-queue-sort-type">
+            <default>'Random'</default>
+            <summary>How to order the slideshow queue.</summary>
+        </key>
+        <key type="(iii)" name="slideshow-slide-duration">
+            <default>(0, 0, 60)</default>
+            <summary>Duration of each image in the slideshow (seconds).</summary>
+        </key>
+        <key type="b" name="slideshow-use-absolute-time-for-duration">
+            <default>false</default>
+            <summary>Use Absolute Time for Slide Duration.</summary>
+        </key>
+        <key type="t" name="slideshow-time-of-slide-start">
+            <default>0</default>
+            <summary>The JS Date.Now() time of when the current slide started. Used when 'slideshow-use-absolute-time-for-duration' enabled.</summary>
+        </key>
+        <key type="i" name="slideshow-timer-remaining">
+            <default>0</default>
+            <summary>When (in seconds) to change to the next background image.</summary>
+        </key>
+        <key type="i" name="slideshow-change-slide-event">
+            <default>0</default>
+            <summary>Used in Settings to trigger a manual slide change. 0: Do nothing, 1: Go Previous, 2: Go Next.</summary>
+        </key>
+        <key type="aa{ss}" name="slideshow-queue">
+            <default>[]</default>
+            <summary>Permanent storage of the slideshow queue</summary>
+        </key>
+        <key type="b" name="slideshow-queue-reshuffle-on-complete">
+            <default>true</default>
+            <summary>Reshuffle the slideshow queue when complete</summary>
+        </key>
+        <key type="i" name="slideshow-current-slide-index">
+            <default>0</default>
+            <summary>The current index of 'slideshow-queue' array</summary>
+        </key>
+        <key type="s" name="slideshow-current-wallpaper">
+            <default>''</default>
+            <summary>The current wallpaper of the slideshow.</summary>
+        </key>
+        <key type="b" name="slideshow-show-quick-settings-entry">
+            <default>true</default>
+            <summary>Adds an entry to the quick settings menu to control current slide and open settings.</summary>
+        </key>
+        <key type="b" name="slideshow-pause">
+            <default>false</default>
+            <summary>Pause the slideshow.</summary>
+        </key>
+        <key type="b" name="debug-logs">
+            <default>false</default>
+            <summary>Show/Hide Debug Logs.</summary>
+        </key>
+    </schema>
+</schemalist>
