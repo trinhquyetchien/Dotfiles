@@ -120,7 +120,7 @@ keymap.set("n", "<leader>bn", ":BufferLineCycleNext<CR>", { desc = "Next buffer"
 keymap.set("n", "<leader>bp", ":BufferLineCyclePrev<CR>", { desc = "Prev buffer" })
 
 local function smart_close_buffer()
-    local bufnr = api.vim_get_current_buf()
+    local bufnr = api.nvim_get_current_buf()
     local buffers = vim.fn.getbufinfo({ buflisted = 1 })
 
     if #buffers == 1 then
@@ -141,7 +141,7 @@ local function smart_close_buffer()
     end
 end
 
-keymap.set("n", "<leader>bd", smart_close_buffer, { desc = "Smart close buffer" })
+keymap.set("n", "<leader>bd", smart_close_buffer, { desc = "smart_close_buffer" })
 
 -- ====================================================
 -- ⚙️ LSP / DEVTOOLS / DEBUG / MASON / LAZY
@@ -179,6 +179,11 @@ end, { desc = "Notification history" })
 -- ====================================================
 -- Live Server
 keymap.set("n", "<leader>ls", ":split | terminal live-server<CR>", { desc = "Run Live Server" })
+
+-- ollama
+keymap.set("n", "<leader>aa", ":AvanteChat<CR>")
+keymap.set("v", "<leader>ae", ":AvanteEdit<CR>")
+keymap.set("n", "<leader>ax", ":AvanteExplain<CR>")
 
 -- Toggle relative number
 keymap.set("n", "<leader>nr", function()

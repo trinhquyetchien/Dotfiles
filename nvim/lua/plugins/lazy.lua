@@ -26,10 +26,36 @@ vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
     spec = {
+        --ollama
+        {
+            "yetone/avante.nvim",
+            event = "VeryLazy",
+            build = "make",
+            dependencies = {
+                "nvim-lua/plenary.nvim",
+                "MunifTanjim/nui.nvim",
+                "nvim-tree/nvim-web-devicons",
+                "stevearc/dressing.nvim",
+            },
+            config = function()
+                require("avante").setup({
+                    provider = "ollama",
+                    auto_suggestions_provider = "ollama",
+                    providers = {
+                        ollama = {
+                            endpoint = "http://localhost:11434",
+                            model = "qwen2.5-coder:14b",
+                            temperature = 0.1,
+                            max_tokens = 4096,
+                        },
+                    },
+                })
+            end,
+        },
         --comment
         {
             "numToStr/Comment.nvim",
-            config = function ()
+            config = function()
                 require("plugins.customs.comment")
             end
         },
