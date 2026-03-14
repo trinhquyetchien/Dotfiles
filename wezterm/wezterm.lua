@@ -7,13 +7,9 @@ config.font = wezterm.font_with_fallback({
 })
 config.font_size = 13.0
 config.line_height = 1.2
-
 config.color_scheme = "Kanagawa Dragon"
 
 config.window_padding = { left = 2, right = 2, top = 0, bottom = 0 }
-config.macos_window_background_blur = 20
-config.win32_system_backdrop = "Acrylic"
-
 config.enable_tab_bar = false
 
 config.warn_about_missing_glyphs = false
