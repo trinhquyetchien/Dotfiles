@@ -18,6 +18,7 @@ core_apps=(
     "build-essential" # Biên dịch (nếu cần)
     "unzip"          # Giải nén font/tools
     "gettext"        # Cần cho một số CLI tools
+    "gh"
 )
 
 for app in "${core_apps[@]}"; do
