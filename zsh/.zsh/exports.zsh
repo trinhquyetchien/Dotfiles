@@ -25,6 +25,7 @@ export ANDROID_HOME="$HOME/Android/Sdk"
 export ANDROID_HOME=$HOME/Android/Sdk
 
 # Thêm các thư mục công cụ vào PATH
+export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
 export PATH=$PATH:$ANDROID_HOME/emulator
 export PATH=$PATH:$ANDROID_HOME/platform-tools
 export PATH=$PATH:$ANDROID_HOME/tools
