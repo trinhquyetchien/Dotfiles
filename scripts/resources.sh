@@ -39,13 +39,38 @@ info "Cấu hình biến môi trường cho Fcitx5..."
 
 # 4. Extension Manager & Gestures
 install_apt "gnome-shell-extension-manager"
+
 if ! has_command "libinput-gestures"; then
     info "Cài đặt Touchpad Gestures..."
+    
+    # Cài đặt công cụ hỗ trợ
     install_apt "libinput-tools" "xdotool"
+    
+    # Cấp quyền đọc touchpad
     sudo gpasswd -a $USER input
+    
+    # Clone và cài đặt từ source
     git clone https://github.com/bulletmark/libinput-gestures.git /tmp/libinput-gestures
-    (cd /tmp/libinput-gestures && sudo ./libinput-gestures-setup install)
+    cd /tmp/libinput-gestures && sudo ./libinput-gestures-setup install
+    
+    # Thiết lập tự khởi động
     libinput-gestures-setup autostart
+    
+    # Dùng lệnh này để ép hệ thống nhận cấu hình ngay (tạm thời) hoặc khởi động dịch vụ
+    libinput-gestures-setup start || true
+    
+    warn "⚠️  LƯU Ý: Bạn cần LOG OUT và LOG IN lại để cử chỉ touchpad có hiệu lực!"
 fi
+
+# 5. GNOME Customization
+info "Cài đặt GNOME Tweaks để tùy biến giao diện..."
+install_apt "gnome-tweaks"
+
+# Cài đặt thêm engine để hỗ trợ các bộ theme phổ biến (GTK)
+install_apt "gtk2-engines-murrine" "gtk2-engines-pixbuf"
+
+# Sửa lỗi AppIndicator cho GNOME Extensions
+info "Cài đặt thư viện hỗ trợ AppIndicator..."
+install_apt "libayatana-appindicator3-1" "gir1.2-ayatanaappindicator3-0.1" "gnome-shell-extension-appindicator"
 
 success "=== TẤT CẢ SẴN SÀNG! ==="
