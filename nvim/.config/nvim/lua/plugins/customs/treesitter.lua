@@ -1,37 +1,46 @@
-require("nvim-treesitter.configs").setup({
-    ensure_installed = { "lua", "python", "javascript", "typescript", "go", "rust", "bash", "markdown", "go", "gomod", "gowork", "gosum", },      -- các ngôn ngữ muốn cài parser
-    sync_install = false,
-    auto_install = true, -- tự động cài khi mở file có parser chưa cài
+return {
+    "nvim-treesitter/nvim-treesitter",
+    build = ":TSUpdate",
+    config = function()
+        -- Toàn bộ code require và setup phải nằm TRONG hàm này
+        local configs = require("nvim-treesitter.configs")
 
-    highlight = {
-        enable = true,                             -- bật highlight
-        additional_vim_regex_highlighting = false, -- tắt highlight cũ
-    },
+        configs.setup({
+            ensure_installed = { "lua", "python", "javascript", "typescript", "go", "rust", "bash", "markdown", "gomod", "gowork", "gosum" },
+            sync_install = false,
+            auto_install = true,
 
-    indent = {
-        enable = true, -- bật auto indent thông minh
-    },
-
-    incremental_selection = {
-        enable = true,
-        keymaps = {
-            init_selection = "gn",   -- bắt đầu chọn vùng
-            node_incremental = "gr", -- mở rộng vùng chọn
-            scope_incremental = "gs",
-            node_decremental = "gm",
-        },
-    },
-
-    textobjects = {
-        select = {
-            enable = true,
-            lookahead = true,
-            keymaps = {
-                ["of"] = "@function.outer", -- chọn cả hàm
-                ["if"] = "@function.inner", -- chọn phần trong hàm
-                ["oc"] = "@class.outer",    -- chọn cả class
-                ["ic"] = "@class.inner",
+            highlight = {
+                enable = true,
+                additional_vim_regex_highlighting = false,
             },
-        },
-    },
-})
+
+            indent = {
+                enable = true,
+            },
+
+            incremental_selection = {
+                enable = true,
+                keymaps = {
+                    init_selection = "gn",
+                    node_incremental = "gr",
+                    scope_incremental = "gs",
+                    node_decremental = "gm",
+                },
+            },
+
+            textobjects = {
+                select = {
+                    enable = true,
+                    lookahead = true,
+                    keymaps = {
+                        ["of"] = "@function.outer",
+                        ["if"] = "@function.inner",
+                        ["oc"] = "@class.outer",
+                        ["ic"] = "@class.inner",
+                    },
+                },
+            },
+        })
+    end,
+}
