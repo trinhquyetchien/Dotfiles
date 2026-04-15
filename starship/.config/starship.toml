@@ -1,231 +1,288 @@
 "$schema" = 'https://starship.rs/config-schema.json'
 
 format = """
-[╭╴](fg:#505050)\
+[](red)\
 $os\
-$shell\
 $username\
-$hostname\
-$sudo\
+[](bg:peach fg:red)\
 $directory\
-$direnv\
+[](bg:yellow fg:peach)\
+$git_branch\
+$git_status\
+[](fg:yellow bg:green)\
+$c\
+$rust\
+$golang\
+$nodejs\
 $php\
+$java\
+$kotlin\
+$haskell\
 $python\
-$git_branch$git_commit$git_state$git_metrics$git_status\
-[ ](fg:#252525)\
-$fill\
-$fill\
-[ ](fg:#252525)\
-$status\
-$jobs\
-$memory_usage\
-$cmd_duration\
-$battery\
+[](fg:green bg:sapphire)\
+$conda\
+[](fg:sapphire bg:lavender)\
 $time\
+[ ](fg:lavender)\
+$cmd_duration\
 $line_break\
-\
-[╰╴](fg:#505050)\
-[$character]($style)"""
+$character"""
 
-right_format = """
-[$localip]($style)"""
-
-add_newline = true
+palette = 'catppuccin_mocha'
 
 [os]
-format = "[](fg:#252525)[$symbol]($style)(bg:#252525)"
-style = "fg:#AAAAAA bg:#252525"
 disabled = false
+style = "bg:red fg:crust"
 
 [os.symbols]
-AIX = "AIX "
-Alpaquita = "\uf26a "
-AlmaLinux = "\uf31d "
-Alpine = "\uf300 "
-Amazon = "\uf270 "
-Android = "\ue70e "
-Arch = "\uf303 "
-Artix = "\uf31f "
-CentOS = "\uf304 "
-Debian = "\uf306 "
-DragonFly = "\ueef8 "
-Emscripten = "\u26A1 "
-EndeavourOS = "\uf322 "
-Fedora = "\uf30a "
-FreeBSD = "\uf30c "
-Garuda = "\uf337 "
-Gentoo = "\uf30d "
-HardenedBSD = "\uf132 "
-Illumos = "\uf326 "
-Kali = "\uf327 "
-Linux = "\uf17c "
-Mabox = "\uf1b2 "
-Macos = "\uf302 "
-Manjaro = "\uf312 "
-Mariner = "\ue7ae "
-MidnightBSD = "\ue3e0 "
-Mint = "\uf30e "
-NetBSD = "\u2691 "
-NixOS = "\uf313 "
-OpenBSD = "\uf328 "
-OpenCloudOS = "\uf0c2 "
-openEuler = "\u2208 "
-openSUSE = "\uf314 "
-OracleLinux = "\u213A "
-Pop = "\uf32a "
-Raspbian = "\uf315 "
-Redhat = "\uf316 "
-RedHatEnterprise = "\uf316 "
-RockyLinux = "\uf32b "
-Redox = "\uf331 "
-Solus = "\uf32d "
-SUSE = "\uef6d "
-Ubuntu = "\uf31b "
-Ultramarine = "󱙳 "
-Unknown = "\uf108 "
-Void = "\uf32e "
-Windows = "\uf17a "
-
-[shell]
-format = '[$indicator]($style)()'
-style = 'fg:#424242 bg:#252525'
-zsh_indicator = '%_ '
-bash_indicator = '\$_ '
-fish_indicator = '>> '
-powershell_indicator = '>_ '
-unknown_indicator = '?_ '
-disabled = true
+Windows = ""
+Ubuntu = "󰕈"
+SUSE = ""
+Raspbian = "󰐿"
+Mint = "󰣭"
+Macos = "󰀵"
+Manjaro = ""
+Linux = "󰌽"
+Gentoo = "󰣨"
+Fedora = "󰣛"
+Alpine = ""
+Amazon = ""
+Android = ""
+AOSC = ""
+Arch = "󰣇"
+Artix = "󰣇"
+CentOS = ""
+Debian = "󰣚"
+Redhat = "󱄛"
+RedHatEnterprise = "󱄛"
 
 [username]
-format = '[ ](fg:green bold bg:#252525)[$user]($style)[ ](bg:#252525)'
-style_user = 'fg:green bold bg:#252525'
-style_root = 'fg:red bold bg:#252525'
-show_always = false
-disabled = false
-
-[hostname]
-format = '[$ssh_symbol ](fg:green bold bg:#252525)[$hostname](fg:green bold bg:#252525)[ ](bg:#252525)'
-ssh_only = true
-ssh_symbol = ''
-disabled = false
-
-[sudo]
-format = '[ ](fg:red bold bg:#252525)[ $symbol]($style)'
-style = 'fg:red bold bg:#252525'
-symbol = ' '
-disabled = false
+show_always = true
+style_user = "bg:red fg:crust"
+style_root = "bg:red fg:crust"
+format = '[ $user]($style)'
 
 [directory]
-format = '[ ](fg:cyan bold bg:#252525)[$read_only]($read_only_style)[$repo_root]($repo_root_style)[$path ]($style)'
-style = 'fg:cyan bold bg:#252525'
-home_symbol = ' ~'
-read_only = ' '
-read_only_style = 'fg:cyan bg:#252525'
+style = "bg:peach fg:crust"
+format = "[ $path ]($style)"
 truncation_length = 3
-truncation_symbol = '…/'
-truncate_to_repo = true
-repo_root_format = '[ ](fg:cyan bold bg:#252525)[$read_only]($read_only_style)[$before_root_path]($before_repo_root_style)[$repo_root]($repo_root_style)[$path ]($style)'
-repo_root_style = 'fg:cyan bold bg:#252525'
-use_os_path_sep = true
-disabled = false
+truncation_symbol = "…/"
 
-[direnv]
-symbol = 'direnv'
-style = 'fg:#505050 bold bg:#252525'
-format = "[❯ $symbol $loaded/$allowed ]($style)"
-allowed_msg = 'a'
-not_allowed_msg = '!a'
-denied_msg = 'x'
-loaded_msg = '+'
-unloaded_msg = '-'
-disabled = false
-
-[php]
-format = "[[ \u3009](fg:#7a86b8 bg:#252525)[$symbol](fg:#7a86b8 italic bg:#252525)($version )]($style)"
-style = 'fg:#7a86b8 bg:#252525)'
-symbol = "php "
-
-[python]
-format = "[\u3009${symbol}${pyenv_prefix}(${version} )(($virtualenv) )]($style)"
-style = 'fg:yellow bg:#252525'
-symbol = "󰌠 "
-pyenv_version_name = true
+[directory.substitutions]
+"Documents" = "󰈙 "
+"Downloads" = " "
+"Music" = "󰝚 "
+"Pictures" = " "
+"Developer" = "󰲋 "
 
 [git_branch]
-format = '[❯ $symbol $branch(:$remote_branch)]($style)[ ](bg:#252525)'
-style = 'fg:#E04D27 bg:#252525'
-symbol = ''
-
-[git_commit]
-format = '[\($hash$tag\)]($style)[ ](bg:#252525)'
-style = 'fg:#2d838c bg:#252525'
-commit_hash_length = 8
-tag_symbol = '  '
-tag_disabled = false
-disabled = false
-
-[git_metrics]
-format = '[\[+$added/]($added_style)[-$deleted\]]($deleted_style)[ ](bg:#252525)'
-added_style = 'fg:#3b8f28 bg:#252525'
-deleted_style = 'fg:#94482f bg:#252525'
-disabled = false
+symbol = ""
+style = "bg:yellow"
+format = '[[ $symbol $branch ](fg:crust bg:yellow)]($style)'
 
 [git_status]
-format = '([$all_status$ahead_behind]($style))'
-style = 'fg:#E04D27 bg:#252525'
-conflicted = '[ ${count} ](fg:red bg:#252525)'
-ahead = '[ ${count} ](fg:yellow bg:#252525)'
-behind = '[ ${count} ](fg:yellow bg:#252525)'
-diverged = '[ ${ahead_count} ${behind_count} ](fg:yellow bg:#252525)'
-up_to_date = '[ ](fg:green bg:#252525)'
-untracked = '[ ${count} ](fg:red bg:#252525)'
-stashed = '[ ${count} ](fg:#A52A2A bg:#252525)'
-modified = '[ ${count} ](fg:#C8AC00 bg:#252525)'
-staged = '[ ${count} ](fg:green bg:#252525)'
-renamed = '[ ${count} ](fg:yellow bg:#252525)'
-deleted = '[ ${count} ](fg:red bg:#252525)'
-disabled = false
+style = "bg:yellow"
+format = '[[($modified$staged$untracked$deleted$renamed$conflicted$ahead_behind )](fg:crust bg:yellow)]($style)'
 
-[fill]
-symbol = " "
-disabled = false
+modified = " $count "
+staged = " $count "
+untracked = " $count "
+deleted = " $count "
+renamed = " $count "
+conflicted = " $count "
+ahead = "⇡$count "
+behind = "⇣$count"
 
-[status]
-format = '[❯$symbol]($style)'
-style = 'fg:#252525 bg:#2f3447'
-symbol = '❯'
-disabled = false
+[nodejs]
+symbol = ""
+style = "bg:green"
+format = '[[ $symbol( $version) ](fg:crust bg:green)]($style)'
 
-[jobs]
-format = '[ ](fg:#AA8B1D bg:#252525)[$number]($style)'
-style = 'fg:#AA8B1D bg:#252525'
-disabled = false
+[c]
+symbol = " "
+style = "bg:green"
+format = '[[ $symbol( $version) ](fg:crust bg:green)]($style)'
 
-[memory_usage]
-format = '[ ](fg:#EA8054 bg:#252525)[$symbol$ram]($style)'
-style = 'fg:#EA8054 bg:#252525'
-symbol = '󰍛 '
-disabled = false
+[rust]
+symbol = ""
+style = "bg:green"
+format = '[[ $symbol( $version) ](fg:crust bg:green)]($style)'
 
-[cmd_duration]
-format = '[ ](fg:#6D59E3 bg:#252525)[$duration]($style)'
-style = 'fg:#6D59E3 bg:#252525'
-min_time = 5_000
-disabled = false
+[golang]
+symbol = ""
+style = "bg:green"
+format = '[[ $symbol( $version) ](fg:crust bg:green)]($style)'
 
-[battery]
-format = '[ ](fg:#E0B20F bg:#252525)[$symbol$percentage]($style)'
-style = 'fg:#E0B20F bg:#252525'
-symbol = ' '
-disabled = true
+[php]
+symbol = ""
+style = "bg:green"
+format = '[[ $symbol( $version) ](fg:crust bg:green)]($style)'
+
+[java]
+symbol = " "
+style = "bg:green"
+format = '[[ $symbol( $version) ](fg:crust bg:green)]($style)'
+
+[kotlin]
+symbol = ""
+style = "bg:green"
+format = '[[ $symbol( $version) ](fg:crust bg:green)]($style)'
+
+[haskell]
+symbol = ""
+style = "bg:green"
+format = '[[ $symbol( $version) ](fg:crust bg:green)]($style)'
+
+[python]
+symbol = ""
+style = "bg:green"
+format = '[[ $symbol( $version)(\(#$virtualenv\)) ](fg:crust bg:green)]($style)'
+
+[docker_context]
+symbol = ""
+style = "bg:sapphire"
+format = '[[ $symbol( $context) ](fg:crust bg:sapphire)]($style)'
+
+[conda]
+symbol = "  "
+style = "fg:crust bg:sapphire"
+format = '[$symbol$environment ]($style)'
+ignore_base = false
 
 [time]
 disabled = false
-format = '[ ](fg:#8AB4F8 bg:#252525)[ $time]($style)'
-style = 'fg:#8AB4F8 bg:#252525'
-time_format = "%H:%M:%S"
+time_format = "%R"
+style = "bg:lavender"
+format = '[[  $time ](fg:crust bg:lavender)]($style)'
 
-[localip]
-format = '[󰩟 $ip]($style)'
-style = 'fg:#505050 bg:#252525'
+[line_break]
+disabled = true
+
+[character]
 disabled = false
+success_symbol = '[❯](bold fg:green)'
+error_symbol = '[❯](bold fg:red)'
+vimcmd_symbol = '[❮](bold fg:green)'
+vimcmd_replace_one_symbol = '[❮](bold fg:lavender)'
+vimcmd_replace_symbol = '[❮](bold fg:lavender)'
+vimcmd_visual_symbol = '[❮](bold fg:yellow)'
+
+[cmd_duration]
+show_milliseconds = true
+format = " in $duration "
+style = "bg:lavender"
+disabled = false
+show_notifications = true
+min_time_to_notify = 45000
+
+[palettes.catppuccin_mocha]
+rosewater = "#f5e0dc"
+flamingo = "#f2cdcd"
+pink = "#f5c2e7"
+mauve = "#cba6f7"
+red = "#f38ba8"
+maroon = "#eba0ac"
+peach = "#fab387"
+yellow = "#f9e2af"
+green = "#a6e3a1"
+teal = "#94e2d5"
+sky = "#89dceb"
+sapphire = "#74c7ec"
+blue = "#89b4fa"
+lavender = "#b4befe"
+text = "#cdd6f4"
+subtext1 = "#bac2de"
+subtext0 = "#a6adc8"
+overlay2 = "#9399b2"
+overlay1 = "#7f849c"
+overlay0 = "#6c7086"
+surface2 = "#585b70"
+surface1 = "#45475a"
+surface0 = "#313244"
+base = "#1e1e2e"
+mantle = "#181825"
+crust = "#11111b"
+
+[palettes.catppuccin_frappe]
+rosewater = "#f2d5cf"
+flamingo = "#eebebe"
+pink = "#f4b8e4"
+mauve = "#ca9ee6"
+red = "#e78284"
+maroon = "#ea999c"
+peach = "#ef9f76"
+yellow = "#e5c890"
+green = "#a6d189"
+teal = "#81c8be"
+sky = "#99d1db"
+sapphire = "#85c1dc"
+blue = "#8caaee"
+lavender = "#babbf1"
+text = "#c6d0f5"
+subtext1 = "#b5bfe2"
+subtext0 = "#a5adce"
+overlay2 = "#949cbb"
+overlay1 = "#838ba7"
+overlay0 = "#737994"
+surface2 = "#626880"
+surface1 = "#51576d"
+surface0 = "#414559"
+base = "#303446"
+mantle = "#292c3c"
+crust = "#232634"
+
+[palettes.catppuccin_latte]
+rosewater = "#dc8a78"
+flamingo = "#dd7878"
+pink = "#ea76cb"
+mauve = "#8839ef"
+red = "#d20f39"
+maroon = "#e64553"
+peach = "#fe640b"
+yellow = "#df8e1d"
+green = "#40a02b"
+teal = "#179299"
+sky = "#04a5e5"
+sapphire = "#209fb5"
+blue = "#1e66f5"
+lavender = "#7287fd"
+text = "#4c4f69"
+subtext1 = "#5c5f77"
+subtext0 = "#6c6f85"
+overlay2 = "#7c7f93"
+overlay1 = "#8c8fa1"
+overlay0 = "#9ca0b0"
+surface2 = "#acb0be"
+surface1 = "#bcc0cc"
+surface0 = "#ccd0da"
+base = "#eff1f5"
+mantle = "#e6e9ef"
+crust = "#dce0e8"
+
+[palettes.catppuccin_macchiato]
+rosewater = "#f4dbd6"
+flamingo = "#f0c6c6"
+pink = "#f5bde6"
+mauve = "#c6a0f6"
+red = "#ed8796"
+maroon = "#ee99a0"
+peach = "#f5a97f"
+yellow = "#eed49f"
+green = "#a6da95"
+teal = "#8bd5ca"
+sky = "#91d7e3"
+sapphire = "#7dc4e4"
+blue = "#8aadf4"
+lavender = "#b7bdf8"
+text = "#cad3f5"
+subtext1 = "#b8c0e0"
+subtext0 = "#a5adcb"
+overlay2 = "#939ab7"
+overlay1 = "#8087a2"
+overlay0 = "#6e738d"
+surface2 = "#5b6078"
+surface1 = "#494d64"
+surface0 = "#363a4f"
+base = "#24273a"
+mantle = "#1e2030"
+crust = "#181926"

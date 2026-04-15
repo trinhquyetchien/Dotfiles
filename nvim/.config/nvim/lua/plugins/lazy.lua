@@ -325,7 +325,7 @@ require("lazy").setup({
         --treesitter
         {
             "nvim-treesitter/nvim-treesitter",
-            run = "TSUpdate",
+            run = ":TSUpdate",
             config = function()
                 require("plugins.customs.treesitter")
             end,
