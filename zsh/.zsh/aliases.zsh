@@ -1,4 +1,5 @@
 alias v="nvim"
+alias t="tmux"
 alias lzg="lazygit"
 alias lzd="lazydocker"
 alias lzs="lazysql"

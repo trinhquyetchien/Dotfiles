@@ -68,8 +68,8 @@ keymap.set({ "n", "v" }, "<leader>i", "V", { desc = "Select line" })
 
 
 -- First/Last
-keymap.set({ "n", "v"}, "<leader>fl", "0", {desc="first line"})
-keymap.set({ "n", "v"}, "<leader>ll", "$", {desc="last line"})
+keymap.set({ "n", "v" }, "<leader>fl", "0", { desc = "first line" })
+keymap.set({ "n", "v" }, "<leader>ll", "$", { desc = "last line" })
 keymap.set({ "n", "v" }, "<leader>ff", "gg", { desc = "Go to top" })
 keymap.set({ "n", "v" }, "<leader>lf", "G", { desc = "Go to bottom" })
 
