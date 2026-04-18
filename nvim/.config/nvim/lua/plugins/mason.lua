@@ -12,7 +12,7 @@ require("mason-lspconfig").setup {
         "cssls",
         "tailwindcss",
         "ts_ls",
-        "kotlin_lsp",
+        "kotlin_language_server",
         "gopls" 
     },
 

@@ -38,7 +38,7 @@ require('lualine').setup {
 
                     for _, client in ipairs(clients) do
                         local filetypes = client.config.filetypes
-                        if not filetypes or vim.fn.index(filetypes, buf_ft) ~= -1 then
+                        if not filetypes or vim.tbl_contains(filetypes, buf_ft) then
                             if not seen[client.name] then
                                 table.insert(active, client.name)
                                 seen[client.name] = true

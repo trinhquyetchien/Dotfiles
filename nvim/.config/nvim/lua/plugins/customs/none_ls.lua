@@ -8,7 +8,9 @@ null_ls.setup({
     }),
 
     -- Python
-    null_ls.builtins.formatting.black,
+    null_ls.builtins.formatting.black.with({
+      prefer_local = "bin",
+    }),
 
     -- Go
     null_ls.builtins.formatting.goimports,

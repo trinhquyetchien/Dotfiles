@@ -33,7 +33,7 @@ require("lazy").setup({
         --image view
         {
             "3rd/image.nvim",
-            enabled = is_image_supported(),
+            enabled = false, -- Tạm thời tắt để tìm lỗi khởi động
             build = false, -- setup rocks.nvim or manually install magick
             config = function()
                 require("image").setup({
@@ -157,8 +157,15 @@ require("lazy").setup({
         --venv
         {
             "linux-cultist/venv-selector.nvim",
-            dependencies = { "nvim-telescope/telescope.nvim" },
-            opts = {},
+            branch = "regexp",
+            dependencies = {
+                "nvim-telescope/telescope.nvim",
+                "nvim-lua/plenary.nvim",
+                "neovim/nvim-lspconfig",
+            },
+            config = function()
+                require("plugins.customs.venv")
+            end,
         },
 
         --lazy
@@ -431,8 +438,11 @@ require("lazy").setup({
     performance = {
         rtp = {
             disabled_plugins = {
-                "gzipx 1",
-                "arPlugin",
+                "gzip",
+                "matchit",
+                "matchparen",
+                "netrwPlugin",
+                "tarPlugin",
                 "tohtml",
                 "tutor",
                 "zipPlugin",
