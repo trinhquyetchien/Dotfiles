@@ -3,6 +3,7 @@ alias lzg="lazygit"
 alias lzd="lazydocker"
 alias lzs="lazysql"
 alias ..="cd .."
+alias note=" cd ~/Note; v"
 
 # Android/Emulator
 alias emu="emulator -list-avds"
