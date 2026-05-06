@@ -41,6 +41,9 @@ if ! has_command "yazi"; then
     rm -rf /tmp/yazi.zip /tmp/yazi-dist
 fi
 
+# android connect to phone
+sudo apt install scrcpy
+scrcpy
 
 # Liên kết fdfind thành fd (Ubuntu đặt tên hơi khác)
 ln -sf $(which fdfind) ~/.local/bin/fd 2>/dev/null

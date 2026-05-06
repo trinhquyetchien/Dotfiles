@@ -1,7 +1,3 @@
--- ========================
--- 🔧 Keymaps Configuration
--- ========================
-
 local keymap = vim.keymap
 local api = vim.api
 local opts = { noremap = true, silent = true }
@@ -17,7 +13,7 @@ keymap.set("n", "<leader>q", ":q<CR>", { desc = "Quit window" })
 keymap.set("n", "<leader>Q", ":qa!<CR>", { desc = "Quit all (force)" })
 
 -- Split
-keymap.set("n", "<leader>st", ":split<CR>", { desc = "Horizontal split" })
+keymap.set("n", "<leader>sh", ":split<CR>", { desc = "Horizontal split" })
 keymap.set("n", "<leader>sv", ":vsplit<CR>", { desc = "Vertical split" })
 keymap.set("n", "<leader>sx", ":close<CR>", { desc = "Close split" })
 
@@ -34,7 +30,8 @@ keymap.set("n", "<C-Left>", ":vertical resize -2<CR>", opts)
 keymap.set("n", "<C-Right>", ":vertical resize +2<CR>", opts)
 
 -- Terminal
-keymap.set("n", "<leader>tt", ":split | terminal<CR>i", { desc = "Open terminal (H)" })
+keymap.set("n", "<leader>tt", "<cmd>ToggleTerm direction=float<CR>", { desc = "Terminal (Float)" })
+keymap.set("n", "<leader>th", ":split | terminal<CR>i", { desc = "Open terminal (H)" })
 keymap.set("n", "<leader>tv", ":vsplit | terminal<CR>i", { desc = "Open terminal (V)" })
 
 -- Undo / Redo
@@ -42,8 +39,6 @@ keymap.set("n", "<C-z>", "u", { desc = "Undo" })
 keymap.set("n", "<C-y>", "<C-r>", { desc = "Redo" })
 
 -- Search
-keymap.set("n", "n", "nzzzv", { desc = "Next match" })
-keymap.set("n", "N", "Nzzzv", { desc = "Prev match" })
 keymap.set("n", "<leader>h", ":nohlsearch<CR>", { desc = "Clear highlight" })
 
 -- ====================================================
@@ -66,10 +61,9 @@ keymap.set({ "n", "v" }, "<leader>d", '"_d', { desc = "Delete (no yank)" })
 keymap.set({ "n", "v" }, "<leader>a", "ggVG", { desc = "Select all" })
 keymap.set({ "n", "v" }, "<leader>i", "V", { desc = "Select line" })
 
-
 -- First/Last
-keymap.set({ "n", "v"}, "<leader>fl", "0", {desc="first line"})
-keymap.set({ "n", "v"}, "<leader>ll", "$", {desc="last line"})
+keymap.set({ "n", "v" }, "<leader>fl", "0", { desc = "first line" })
+keymap.set({ "n", "v" }, "<leader>ll", "$", { desc = "last line" })
 keymap.set({ "n", "v" }, "<leader>ff", "gg", { desc = "Go to top" })
 keymap.set({ "n", "v" }, "<leader>lf", "G", { desc = "Go to bottom" })
 
@@ -97,7 +91,7 @@ keymap.set("n", "<leader>e", ":Neotree toggle<CR>", { desc = "File explorer" })
 keymap.set("n", "<leader>sf", "<cmd>Telescope find_files<cr>", { desc = "Find files" })
 keymap.set("n", "<leader>sg", "<cmd>Telescope live_grep<cr>", { desc = "Live grep" })
 keymap.set("n", "<leader>sb", "<cmd>Telescope buffers<cr>", { desc = "Buffers" })
-keymap.set("n", "<leader>sh", "<cmd>Telescope help_tags<cr>", { desc = "Help tags" })
+keymap.set("n", "<leader>st", "<cmd>Telescope help_tags<cr>", { desc = "Help tags" })
 
 -- ====================================================
 -- 🧩 BUFFERLINE MANAGEMENT
@@ -108,6 +102,8 @@ for i = 1, 9 do
     end, { desc = "Go to buffer " .. i })
 end
 
+keymap.set("n", "L", ":BufferLineCycleNext<CR>", { desc = "Next buffer" })
+keymap.set("n", "H", ":BufferLineCyclePrev<CR>", { desc = "Prev buffer" })
 keymap.set("n", "<leader>bn", ":BufferLineCycleNext<CR>", { desc = "Next buffer" })
 keymap.set("n", "<leader>bp", ":BufferLineCyclePrev<CR>", { desc = "Prev buffer" })
 
@@ -139,12 +135,12 @@ keymap.set("n", "<leader>bd", smart_close_buffer, { desc = "smart_close_buffer" 
 -- ⚙️ LSP / DEVTOOLS / DEBUG / MASON / LAZY
 -- ====================================================
 -- LSP
-keymap.set("n", "gd", vim.lsp.buf.definition, { desc = "Go to definition" })
+keymap.set("n", "gd", "<cmd>Lspsaga goto_definition<CR>", { desc = "Go to definition" })
 keymap.set("n", "gD", vim.lsp.buf.declaration, { desc = "Go to declaration" })
-keymap.set("n", "gr", vim.lsp.buf.references, { desc = "List references" })
-keymap.set("n", "K", vim.lsp.buf.hover, { desc = "Hover docs" })
-keymap.set("n", "<leader>rn", vim.lsp.buf.rename, { desc = "Rename symbol" })
-keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, { desc = "Code actions" })
+keymap.set("n", "gr", "<cmd>Lspsaga finder<CR>", { desc = "List references" })
+keymap.set("n", "K", "<cmd>Lspsaga hover_doc<CR>", { desc = "Hover docs" })
+keymap.set("n", "<leader>rn", "<cmd>Lspsaga rename<CR>", { desc = "Rename symbol" })
+keymap.set("n", "<leader>ca", "<cmd>Lspsaga code_action<CR>", { desc = "Code actions" })
 keymap.set("n", "<leader>f", function() vim.lsp.buf.format({ async = true }) end, { desc = "Format file" })
 
 -- Mason / Lazy
@@ -152,13 +148,12 @@ keymap.set("n", "<leader>m", ":Mason<CR>", { desc = "Mason Installer" })
 keymap.set("n", "<leader>l", ":Lazy<CR>", { desc = "Lazy Manager" })
 
 -- Trouble Diagnostics
-keymap.set("n", "<leader>xx", "<cmd>TroubleToggle<cr>", { desc = "Toggle Trouble" })
-keymap.set("n", "<leader>xw", "<cmd>TroubleToggle workspace_diagnostics<cr>", { desc = "Workspace diagnostics" })
-keymap.set("n", "<leader>xd", "<cmd>TroubleToggle document_diagnostics<cr>", { desc = "Document diagnostics" })
+keymap.set("n", "<leader>xx", "<cmd>Trouble diagnostics toggle<cr>", { desc = "Toggle Trouble" })
+keymap.set("n", "<leader>xw", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>", { desc = "Buffer Diagnostics" })
 
 -- Treesitter incremental selection
 keymap.set("n", "<leader>ts", function()
-    require("nvim-treesitter.incremental_selection").init_selection()
+    require("nvim-treesitter").init_selection()
 end, { desc = "TS init selection" })
 
 -- Notification history
@@ -172,7 +167,7 @@ end, { desc = "Notification history" })
 -- Live Server
 keymap.set("n", "<leader>ls", ":split | terminal live-server<CR>", { desc = "Run Live Server" })
 
--- ollama
+-- Avante
 keymap.set("n", "<leader>aa", ":AvanteChat<CR>")
 keymap.set("v", "<leader>ae", ":AvanteEdit<CR>")
 keymap.set("n", "<leader>ax", ":AvanteExplain<CR>")

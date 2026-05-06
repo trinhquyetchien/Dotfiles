@@ -106,4 +106,10 @@ install_apt libcursor1
 install_apt libasound2
 install_apt watchman
 install_apt build-essential
+install_apt lua5.4
+install_apt entr
+
+#6. ollama model
+curl -fsSL https://ollama.com/install.sh | sh
+
 success "=== HOÀN THÀNH STEP 3 ==="

@@ -1,56 +1,55 @@
-local api = vim.api
-
---auto save
+-- Auto save
 vim.api.nvim_create_autocmd("InsertLeave", {
     callback = function()
-        vim.cmd("silent! write")
+        if vim.bo.modified and vim.bo.buftype == "" and vim.fn.expand("%") ~= "" then
+            vim.cmd("silent! write")
+        end
     end,
 })
 
---javafx
-vim.api.nvim_create_autocmd({"BufRead", "BufNewFile"}, {
+-- FXML support
+vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
     pattern = "*.fxml",
     callback = function()
-        vim.bo.filetype = "xml"  -- dùng XML syntax, indent, folding
+        vim.bo.filetype = "xml"
     end
 })
 
---flutter auto reload
+-- Flutter auto reload (if flutter-tools is used)
 vim.api.nvim_create_autocmd("InsertLeave", {
     pattern = "*.dart",
     callback = function()
         vim.cmd("silent! write")
-        vim.cmd("FlutterReload")
-        vim.notify("🔥 Flutter hot reload", vim.log.levels.INFO)
+        -- Check if FlutterReload exists before calling
+        if vim.fn.exists(":FlutterReload") > 0 then
+            vim.cmd("FlutterReload")
+            vim.notify("🔥 Flutter hot reload", vim.log.levels.INFO)
+        end
     end,
 })
 
-vim.api.nvim_create_autocmd({ "BufReadPost", "FileType" }, {
-    callback = function()
-        pcall(vim.lsp.buf_attach_client, 0, lsp_client_id)
-    end
-})
-
---auto terminal
+-- Terminal settings
 vim.api.nvim_create_autocmd('TermOpen', {
     pattern = 'term://*',
     callback = function()
-        vim.api.nvim_buf_set_keymap(0, 't', '<Esc>', [[<C-\><C-n>]], { noremap = true })
-        vim.api.nvim_buf_set_keymap(0, 't', '<C-h>', [[<C-\><C-n><C-w>h]], { noremap = true })
-        vim.api.nvim_buf_set_keymap(0, 't', '<C-j>', [[<C-\><C-n><C-w>j]], { noremap = true })
-        vim.api.nvim_buf_set_keymap(0, 't', '<C-k>', [[<C-\><C-n><C-w>k]], { noremap = true })
-        vim.api.nvim_buf_set_keymap(0, 't', '<C-l>', [[<C-\><C-n><C-w>l]], { noremap = true })
+        local opts = { noremap = true, silent = true }
+        vim.api.nvim_buf_set_keymap(0, 't', '<Esc>', [[<C-\><C-n>]], opts)
+        vim.api.nvim_buf_set_keymap(0, 't', '<C-h>', [[<C-\><C-n><C-w>h]], opts)
+        vim.api.nvim_buf_set_keymap(0, 't', '<C-j>', [[<C-\><C-n><C-w>j]], opts)
+        vim.api.nvim_buf_set_keymap(0, 't', '<C-k>', [[<C-\><C-n><C-w>k]], opts)
+        vim.api.nvim_buf_set_keymap(0, 't', '<C-l>', [[<C-\><C-n><C-w>l]], opts)
+        vim.cmd("startinsert")
     end,
 })
 
---auto lsp lualine
+-- Redraw statusline on LSP changes
 vim.api.nvim_create_autocmd({ "LspAttach", "LspDetach" }, {
     callback = function()
         vim.cmd("redrawstatus")
     end
 })
 
---auto selection
+-- Visual Selection Highlight
 local ns_id = vim.api.nvim_create_namespace("VisualHighlight")
 
 local function highlight_visual_word()
@@ -64,13 +63,17 @@ local function highlight_visual_word()
     local lines = vim.api.nvim_buf_get_lines(0, start_line, end_line + 1, false)
     if #lines == 0 then return end
 
-    lines[#lines] = lines[#lines]:sub(1, end_col - (start_line == end_line and 0 or 0))
-    lines[1] = lines[1]:sub(start_col + 1)
+    if #lines == 1 then
+        lines[1] = lines[1]:sub(start_col + 1, end_col)
+    else
+        lines[1] = lines[1]:sub(start_col + 1)
+        lines[#lines] = lines[#lines]:sub(1, end_col)
+    end
+    
     local word = table.concat(lines, "\n")
-    if word == "" then return end
+    if word == "" or word:match("^%s*$") then return end
 
     local pattern = vim.pesc(word)
-
     local buf_lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
     for lnum, text in ipairs(buf_lines) do
         local start_idx = 1
@@ -95,7 +98,7 @@ vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI", "ModeChanged" }, {
     end
 })
 
---auto indent
+-- Auto indent for HTML
 vim.api.nvim_create_autocmd("FileType", {
   group = vim.api.nvim_create_augroup("NoHtmlIndent", { clear = true }),
   pattern = "html",

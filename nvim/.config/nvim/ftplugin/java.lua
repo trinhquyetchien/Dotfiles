@@ -1,32 +1,25 @@
+local home = os.getenv("HOME")
 local jdtls = require("jdtls")
 
--- ===============================
--- Thông tin cơ bản
--- ===============================
-local home = os.getenv("HOME")
-local mason_path = home .. "/.local/share/nvim/mason/packages/jdtls"
-local workspace_dir = home .. "/.cache/jdtls/workspace/" .. vim.fn.fnamemodify(vim.fn.getcwd(), ":p:h:t")
+-- File types that should trigger jdtls
+local root_markers = { ".git", "mvnw", "gradlew", "pom.xml", "build.gradle" }
+local root_dir = jdtls.setup.find_root(root_markers)
 
--- Launcher jar & config
-local launcher =
-"/home/trinhquyetchien/.local/share/nvim/mason/packages/jdtls/plugins/org.eclipse.equinox.launcher_1.7.100.v20251014-1222.jar"
-local config = mason_path .. "/config_linux"
-
--- Root dir tìm pom.xml, build.gradle, hoặc .git
-local root_dir = require("jdtls.setup").find_root({ "pom.xml", "build.gradle", ".git" })
 if root_dir == "" then
-    root_dir = vim.fn.getcwd()
+    return
 end
 
--- ===============================
--- JavaFX module path
--- ===============================
-local fx_path = "/home/trinhquyetchien/JavaFX/javafx-sdk-23.0.2/lib"
+local project_name = vim.fn.fnamemodify(root_dir, ":p:h:t")
+local workspace_dir = home .. "/.local/share/nvim/jdtls-workspace/" .. project_name
 
--- ===============================
--- Config jdtls
--- ===============================
-local opts = {
+local mason_path = home .. "/.local/share/nvim/mason/packages/jdtls"
+local launcher_jar = vim.fn.glob(mason_path .. "/plugins/org.eclipse.equinox.launcher_*.jar")
+local config_path = mason_path .. "/config_linux"
+local lombok_path = mason_path .. "/lombok.jar"
+
+local capabilities = require("cmp_nvim_lsp").default_capabilities()
+
+local config = {
     cmd = {
         "java",
         "-Declipse.application=org.eclipse.jdt.ls.core.id1",
@@ -35,35 +28,58 @@ local opts = {
         "-Dlog.protocol=true",
         "-Dlog.level=ALL",
         "-Xms1g",
-        -- Thêm JavaFX
-        "--module-path", fx_path,
-        "--add-modules", "javafx.controls,javafx.fxml",
+        "--add-modules=ALL-SYSTEM",
         "--add-opens", "java.base/java.util=ALL-UNNAMED",
         "--add-opens", "java.base/java.lang=ALL-UNNAMED",
-        "-jar", launcher,
-        "-configuration", config,
+        "-javaagent:" .. lombok_path,
+        "-jar", launcher_jar,
+        "-configuration", config_path,
         "-data", workspace_dir,
     },
-
     root_dir = root_dir,
-
+    capabilities = capabilities,
     settings = {
         java = {
-            configuration = {
-                runtimes = {
-                    {
-                        name = "JavaSE-21",
-                        path = "/usr/lib/jvm/java-21-openjdk",
-                    },
+            signatureHelp = { enabled = true },
+            contentProvider = { preferred = "fernflower" },
+            completion = {
+                favoriteStaticMembers = {
+                    "org.hamcrest.MatcherAssert.assertThat",
+                    "org.hamcrest.Matchers.*",
+                    "org.hamcrest.CoreMatchers.*",
+                    "org.junit.jupiter.api.Assertions.*",
+                    "java.util.Objects.requireNonNull",
+                    "java.util.Objects.requireNonNullElse",
+                    "org.mockito.Mockito.*",
                 },
+                filteredTypes = {
+                    "com.sun.*",
+                    "io.micrometer.shaded.*",
+                    "java.awt.*",
+                    "jdk.*",
+                    "sun.*",
+                },
+            },
+            sources = {
+                organizeImports = {
+                    starThreshold = 9999,
+                    staticStarThreshold = 9999,
+                },
+            },
+            codeGeneration = {
+                toString = {
+                    template = "${object.className}{${member.name()}=${member.value}, ${otherMembers}}",
+                },
+                hashCodeEquals = {
+                    useJava7Objects = true,
+                },
+                useBlocks = true,
             },
         },
     },
-
     init_options = {
-        bundles = {}
+        bundles = {},
     },
 }
 
--- Start hoặc attach jdtls
-jdtls.start_or_attach(opts)
+jdtls.start_or_attach(config)

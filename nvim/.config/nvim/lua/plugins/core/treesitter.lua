@@ -1,0 +1,47 @@
+return {
+	"nvim-treesitter/nvim-treesitter",
+	branch = "master",
+	build = ":TSUpdate",
+	event = { "BufReadPost", "BufNewFile" },
+	opts = {
+		ensure_installed = {
+			"lua",
+			"python",
+			"javascript",
+			"typescript",
+			"go",
+			"rust",
+			"bash",
+			"markdown",
+			"html",
+			"css",
+			"gomod",
+			"gowork",
+			"gosum",
+			"vim",
+			"vimdoc",
+			"query",
+			"json",
+			"yaml",
+			"toml",
+			"dockerfile",
+			"sql",
+		},
+		highlight = {
+			enable = true,
+			additional_vim_regex_highlighting = false,
+		},
+		indent = {
+			enable = true,
+		},
+		incremental_selection = {
+			enable = true,
+			keymaps = {
+				init_selection = "gn",
+				node_incremental = "gr",
+				node_decremental = "gm",
+				scope_incremental = "gs",
+			},
+		},
+	},
+}
