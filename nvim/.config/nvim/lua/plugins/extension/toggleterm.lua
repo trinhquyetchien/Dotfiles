@@ -19,6 +19,9 @@ return {
             terminal_mappings = true,
             persist_size = true,
             direction = "float",
+            on_open = function(term)
+                vim.cmd("startinsert!")
+            end,
             close_on_exit = true,
             shell = vim.o.shell,
             float_opts = {

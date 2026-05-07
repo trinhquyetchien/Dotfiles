@@ -42,6 +42,13 @@ vim.api.nvim_create_autocmd('TermOpen', {
     end,
 })
 
+vim.api.nvim_create_autocmd({ "BufEnter", "WinEnter" }, {
+    pattern = "term://*",
+    callback = function()
+        vim.cmd("startinsert")
+    end,
+})
+
 -- Redraw statusline on LSP changes
 vim.api.nvim_create_autocmd({ "LspAttach", "LspDetach" }, {
     callback = function()

@@ -7,7 +7,7 @@ function M.apply_to_config(config)
         { family = "JetBrains Mono", weight = "Medium" },
         { family = "Fira Code" },
     })
-    config.font_size = 13.0
+    config.font_size = 12.0
     config.line_height = 1.2
 
     -- Giao diện & Màu sắc

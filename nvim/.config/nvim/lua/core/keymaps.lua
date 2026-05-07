@@ -31,8 +31,8 @@ keymap.set("n", "<C-Right>", ":vertical resize +2<CR>", opts)
 
 -- Terminal
 keymap.set("n", "<leader>tt", "<cmd>ToggleTerm direction=float<CR>", { desc = "Terminal (Float)" })
-keymap.set("n", "<leader>th", ":split | terminal<CR>i", { desc = "Open terminal (H)" })
-keymap.set("n", "<leader>tv", ":vsplit | terminal<CR>i", { desc = "Open terminal (V)" })
+keymap.set("n", "<leader>th", ":split | terminal<CR>", { desc = "Open terminal (H)" })
+keymap.set("n", "<leader>tv", ":vsplit | terminal<CR>", { desc = "Open terminal (V)" })
 
 -- Undo / Redo
 keymap.set("n", "<C-z>", "u", { desc = "Undo" })

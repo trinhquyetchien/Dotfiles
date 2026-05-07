@@ -48,6 +48,8 @@ return {
                     ["d"] = "delete",
                     ["r"] = "rename",
                     ["q"] = "close_window",
+                    ["E"] = "expand_all_nodes",
+                    ["C"] = "close_all_nodes",
                 },
             },
 
