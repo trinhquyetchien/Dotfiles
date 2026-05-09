@@ -69,16 +69,16 @@ keymap.set({ "n", "v" }, "<leader>lf", "G", { desc = "Go to bottom" })
 
 -- Duplicate
 keymap.set({ "n", "v" }, "<leader>du", function()
-    local mode = vim.fn.mode()
-    if mode:match("[vV]") or mode == "\22" then
-        vim.api.nvim_feedkeys("y'>p", "n", false)
-    else
-        vim.api.nvim_feedkeys("yyp", "n", false)
-    end
+	local mode = vim.fn.mode()
+	if mode:match("[vV]") or mode == "\22" then
+		vim.api.nvim_feedkeys("y'>p", "n", false)
+	else
+		vim.api.nvim_feedkeys("yyp", "n", false)
+	end
 end, { desc = "Duplicate line/selection" })
 
 -- Replace
-keymap.set("v", "<leader>ra", 'y:%s/<C-r>0//g<Left><Left>', { desc = "Replace selection (global)" })
+keymap.set("v", "<leader>ra", "y:%s/<C-r>0//g<Left><Left>", { desc = "Replace selection (global)" })
 keymap.set("v", "<leader>r", [[:s/<C-r><C-w>//g<Left><Left>]], { desc = "Replace in selection" })
 
 -- ====================================================
@@ -97,9 +97,9 @@ keymap.set("n", "<leader>st", "<cmd>Telescope help_tags<cr>", { desc = "Help tag
 -- 🧩 BUFFERLINE MANAGEMENT
 -- ====================================================
 for i = 1, 9 do
-    keymap.set("n", "<leader>" .. i, function()
-        require("bufferline").go_to_buffer(i, true)
-    end, { desc = "Go to buffer " .. i })
+	keymap.set("n", "<leader>" .. i, function()
+		require("bufferline").go_to_buffer(i, true)
+	end, { desc = "Go to buffer " .. i })
 end
 
 keymap.set("n", "L", ":BufferLineCycleNext<CR>", { desc = "Next buffer" })
@@ -108,25 +108,25 @@ keymap.set("n", "<leader>bn", ":BufferLineCycleNext<CR>", { desc = "Next buffer"
 keymap.set("n", "<leader>bp", ":BufferLineCyclePrev<CR>", { desc = "Prev buffer" })
 
 local function smart_close_buffer()
-    local bufnr = api.nvim_get_current_buf()
-    local buffers = vim.fn.getbufinfo({ buflisted = 1 })
+	local bufnr = api.nvim_get_current_buf()
+	local buffers = vim.fn.getbufinfo({ buflisted = 1 })
 
-    if #buffers == 1 then
-        vim.cmd("bdelete")
-        vim.cmd("Alpha")
-    else
-        local next_buf = nil
-        for i, buf in ipairs(buffers) do
-            if buf.bufnr == bufnr then
-                next_buf = buffers[i + 1] or buffers[i - 1]
-                break
-            end
-        end
-        if next_buf then
-            vim.cmd("buffer " .. next_buf.bufnr)
-        end
-        vim.cmd("bdelete! " .. bufnr)
-    end
+	if #buffers == 1 then
+		vim.cmd("bdelete")
+		vim.cmd("Alpha")
+	else
+		local next_buf = nil
+		for i, buf in ipairs(buffers) do
+			if buf.bufnr == bufnr then
+				next_buf = buffers[i + 1] or buffers[i - 1]
+				break
+			end
+		end
+		if next_buf then
+			vim.cmd("buffer " .. next_buf.bufnr)
+		end
+		vim.cmd("bdelete! " .. bufnr)
+	end
 end
 
 keymap.set("n", "<leader>bd", smart_close_buffer, { desc = "smart_close_buffer" })
@@ -141,7 +141,9 @@ keymap.set("n", "gr", "<cmd>Lspsaga finder<CR>", { desc = "List references" })
 keymap.set("n", "K", "<cmd>Lspsaga hover_doc<CR>", { desc = "Hover docs" })
 keymap.set("n", "<leader>rn", "<cmd>Lspsaga rename<CR>", { desc = "Rename symbol" })
 keymap.set("n", "<leader>ca", "<cmd>Lspsaga code_action<CR>", { desc = "Code actions" })
-keymap.set("n", "<leader>f", function() vim.lsp.buf.format({ async = true }) end, { desc = "Format file" })
+keymap.set("n", "<leader>f", function()
+	vim.lsp.buf.format({ async = true })
+end, { desc = "Format file" })
 
 -- Mason / Lazy
 keymap.set("n", "<leader>m", ":Mason<CR>", { desc = "Mason Installer" })
@@ -153,12 +155,12 @@ keymap.set("n", "<leader>xw", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>"
 
 -- Treesitter incremental selection
 keymap.set("n", "<leader>ts", function()
-    require("nvim-treesitter").init_selection()
+	require("nvim-treesitter").init_selection()
 end, { desc = "TS init selection" })
 
 -- Notification history
 keymap.set("n", "<leader>nt", function()
-    require("notify").history()
+	require("notify").history()
 end, { desc = "Notification history" })
 
 -- ====================================================
@@ -174,10 +176,10 @@ keymap.set("n", "<leader>ax", ":AvanteExplain<CR>")
 
 -- Toggle relative number
 keymap.set("n", "<leader>nr", function()
-    vim.o.relativenumber = not vim.o.relativenumber
+	vim.o.relativenumber = not vim.o.relativenumber
 end, { desc = "Toggle relative number" })
 
 -- Which-key show
 keymap.set("n", "<leader>km", function()
-    require("which-key").show()
+	require("which-key").show()
 end, { desc = "Show key map menu" })
