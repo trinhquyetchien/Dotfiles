@@ -34,6 +34,13 @@ keymap.set("n", "<leader>tt", "<cmd>ToggleTerm direction=float<CR>", { desc = "T
 keymap.set("n", "<leader>th", ":split | terminal<CR>", { desc = "Open terminal (H)" })
 keymap.set("n", "<leader>tv", ":vsplit | terminal<CR>", { desc = "Open terminal (V)" })
 
+-- Terminal Mode Mappings
+keymap.set("t", "<Esc>", [[<C-\><C-n>]], opts)
+keymap.set("t", "<C-h>", [[<C-\><C-n><C-w>h]], opts)
+keymap.set("t", "<C-j>", [[<C-\><C-n><C-w>j]], opts)
+keymap.set("t", "<C-k>", [[<C-\><C-n><C-w>k]], opts)
+keymap.set("t", "<C-l>", [[<C-\><C-n><C-w>l]], opts)
+
 -- Undo / Redo
 keymap.set("n", "<C-z>", "u", { desc = "Undo" })
 keymap.set("n", "<C-y>", "<C-r>", { desc = "Redo" })
