@@ -32,6 +32,9 @@ return {
                     "--line-number",
                     "--column",
                     "--smart-case",
+                    "--hidden",
+                    "--glob",
+                    "!.git/*",
                 },
             },
             pickers = {
