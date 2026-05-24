@@ -2,6 +2,9 @@ local wezterm = require 'wezterm'
 local M = {}
 
 function M.apply_to_config(config)
+    -- Required for IME preedit/compose in terminal apps (fcitx5/ibus).
+    config.use_ime = true
+
     -- Font & Cỡ chữ
     config.font = wezterm.font_with_fallback({
         { family = "JetBrains Mono", weight = "Medium" },

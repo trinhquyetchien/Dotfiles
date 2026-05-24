@@ -31,6 +31,3 @@ has_command fnm && eval "$(fnm env --use-on-cd)"
 
 has_command starship && eval "$(starship init zsh)"
 
-if command -v tmux >/dev/null 2>&1; then
-    [ -z "$TMUX" ] && exec tmux new-session -A -s main
-fi
