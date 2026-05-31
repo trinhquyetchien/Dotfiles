@@ -41,6 +41,9 @@ if ! has_command "yazi"; then
     rm -rf /tmp/yazi.zip /tmp/yazi-dist
 fi
 
+#5. transcript
+sudo apt install translate-shell
+
 # android connect to phone
 sudo apt install scrcpy
 scrcpy
