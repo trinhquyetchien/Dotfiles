@@ -51,6 +51,9 @@ keymap.set("n", "<leader>h", ":nohlsearch<CR>", { desc = "Clear highlight" })
 -- ====================================================
 -- ✂️ EDIT / TEXT / REGISTER / SELECTION
 -- ====================================================
+-- click link
+vim.keymap.set('n', '<C-LeftMouse>', '<LeftMouse>gx', { desc = "Ctrl-Click to open link" })
+
 -- Clipboard
 keymap.set({ "n", "v" }, "<C-c>", '"+y', { desc = "Copy to clipboard" })
 keymap.set({ "n", "v" }, "<C-v>", '"+p', { desc = "Paste from clipboard" })
