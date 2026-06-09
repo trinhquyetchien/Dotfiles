@@ -9,6 +9,7 @@ info "--- [STEP 2] CÀI ĐẶT PHẦN MỀM HỆ THỐNG & GUI ---"
 info "Đang cài đặt Tmux và hỗ trợ AppImage..."
 install_apt "tmux"
 install_apt "libfuse2" # Bắt buộc phải có để chạy Neovim AppImage trên Ubuntu mới
+install_apt "xclip" # Cần cho img-clip.nvim khi chạy trong phiên X11
 
 if ! has_command "nvim"; then
     info "Đang tải Neovim AppImage từ GitHub..."
