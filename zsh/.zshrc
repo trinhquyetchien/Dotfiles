@@ -30,4 +30,3 @@ has_command fnm && eval "$(fnm env --use-on-cd)"
 [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ] && source "$HOME/miniconda3/etc/profile.d/conda.sh"
 
 has_command starship && eval "$(starship init zsh)"
-

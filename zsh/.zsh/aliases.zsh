@@ -32,3 +32,26 @@ alias calendar='google-chrome https://calendar.google.com'
 alias youtube='google-chrome https://youtube.com'
 alias github='google-chrome https://github.com'
 alias insta="google-chrome https://www.instagram.com"
+alias abolo="google-chrome https://app.alobo.vn"
+alias face="google-chrome https://www.facebook.com"
+
+soical() {
+    insta
+    youtube
+    face 
+}
+
+chat() {
+    mess
+    zalo
+}
+
+task() {
+    calendar
+}
+
+work() {
+    email
+    abolo
+    driver
+}

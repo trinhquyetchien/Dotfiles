@@ -179,11 +179,6 @@ end, { desc = "Notification history" })
 -- Live Server
 keymap.set("n", "<leader>ls", ":split | terminal live-server<CR>", { desc = "Run Live Server" })
 
--- Avante
-keymap.set("n", "<leader>aa", ":AvanteChat<CR>")
-keymap.set("v", "<leader>ae", ":AvanteEdit<CR>")
-keymap.set("n", "<leader>ax", ":AvanteExplain<CR>")
-
 -- Toggle relative number
 keymap.set("n", "<leader>nr", function()
 	vim.o.relativenumber = not vim.o.relativenumber
