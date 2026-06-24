@@ -5,9 +5,6 @@ local opts = { noremap = true, silent = true }
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
--- ====================================================
--- 🧭 CORE MOVEMENT / WINDOW / BASIC EDITING
--- ====================================================
 keymap.set("n", "<leader>w", ":w<CR>", { desc = "Save file" })
 keymap.set("n", "<leader>q", ":q<CR>", { desc = "Quit window" })
 keymap.set("n", "<leader>Q", ":qa!<CR>", { desc = "Quit all (force)" })
@@ -48,9 +45,6 @@ keymap.set("n", "<C-y>", "<C-r>", { desc = "Redo" })
 -- Search
 keymap.set("n", "<leader>h", ":nohlsearch<CR>", { desc = "Clear highlight" })
 
--- ====================================================
--- ✂️ EDIT / TEXT / REGISTER / SELECTION
--- ====================================================
 -- click link
 vim.keymap.set('n', '<C-LeftMouse>', '<LeftMouse>gx', { desc = "Ctrl-Click to open link" })
 
@@ -91,9 +85,6 @@ end, { desc = "Duplicate line/selection" })
 keymap.set("v", "<leader>ra", "y:%s/<C-r>0//g<Left><Left>", { desc = "Replace selection (global)" })
 keymap.set("v", "<leader>r", [[:s/<C-r><C-w>//g<Left><Left>]], { desc = "Replace in selection" })
 
--- ====================================================
--- 🌳 FILES / NAVIGATION / PLUGINS
--- ====================================================
 -- NeoTree
 keymap.set("n", "<leader>e", ":Neotree toggle<CR>", { desc = "File explorer" })
 
@@ -103,9 +94,6 @@ keymap.set("n", "<leader>sg", "<cmd>Telescope live_grep<cr>", { desc = "Live gre
 keymap.set("n", "<leader>sb", "<cmd>Telescope buffers<cr>", { desc = "Buffers" })
 keymap.set("n", "<leader>st", "<cmd>Telescope help_tags<cr>", { desc = "Help tags" })
 
--- ====================================================
--- 🧩 BUFFERLINE MANAGEMENT
--- ====================================================
 for i = 1, 9 do
 	keymap.set("n", "<leader>" .. i, function()
 		require("bufferline").go_to_buffer(i, true)
@@ -141,9 +129,6 @@ end
 
 keymap.set("n", "<leader>bd", smart_close_buffer, { desc = "smart_close_buffer" })
 
--- ====================================================
--- ⚙️ LSP / DEVTOOLS / DEBUG / MASON / LAZY
--- ====================================================
 -- LSP
 keymap.set("n", "gd", "<cmd>Lspsaga goto_definition<CR>", { desc = "Go to definition" })
 keymap.set("n", "gD", vim.lsp.buf.declaration, { desc = "Go to declaration" })
@@ -173,9 +158,6 @@ keymap.set("n", "<leader>nt", function()
 	require("notify").history()
 end, { desc = "Notification history" })
 
--- ====================================================
--- 🧰 TOOLS / UTILITIES
--- ====================================================
 -- Live Server
 keymap.set("n", "<leader>ls", ":split | terminal live-server<CR>", { desc = "Run Live Server" })
 

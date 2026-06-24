@@ -38,7 +38,7 @@ function M.apply_to_config(config)
 	config.color_scheme = "Kanagawa Dragon"
 	config.window_padding = { left = 2, right = 2, top = 0, bottom = 0 }
 	config.warn_about_missing_glyphs = false
-	config.enable_tab_bar = true
+	config.enable_tab_bar = false
 	config.hide_tab_bar_if_only_one_tab = false
 	config.use_fancy_tab_bar = false
 	config.window_decorations = "RESIZE"

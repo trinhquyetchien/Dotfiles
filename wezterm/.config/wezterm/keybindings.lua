@@ -34,6 +34,11 @@ function M.apply_to_config(config)
 			action = wezterm.action.CopyTo("Clipboard"),
 		},
 		{
+			key = "p",
+			mods = "CTRL|SHIFT",
+			action = wezterm.action.ShowTabNavigator,
+		},
+		{
 			key = "V",
 			mods = "CTRL|SHIFT",
 			action = wezterm.action.PasteFrom("Clipboard"),
@@ -55,7 +60,7 @@ function M.apply_to_config(config)
 			}),
 		},
 		{
-			key = "E",
+			key = "R",
 			mods = "CTRL|SHIFT",
 			action = wezterm.action.PromptInputLine({
 				description = "Rename Tab",
@@ -76,6 +81,11 @@ function M.apply_to_config(config)
 			key = "l",
 			mods = "ALT",
 			action = wezterm.action.ActivateTabRelative(1),
+		},
+		{
+			key = "b",
+			mods = "CTRL|SHIFT",
+			action = wezterm.action.EmitEvent("toggle-tab-bar"),
 		},
 	}
 end

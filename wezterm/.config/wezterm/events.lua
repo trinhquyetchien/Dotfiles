@@ -46,6 +46,12 @@ function M.setup()
 			{ Text = " " .. title .. " " },
 		}
 	end)
+
+	wezterm.on("toggle-tab-bar", function(window, _)
+		local overrides = window:get_config_overrides() or {}
+		overrides.enable_tab_bar = not overrides.enable_tab_bar
+		window:set_config_overrides(overrides)
+	end)
 end
 
 return M

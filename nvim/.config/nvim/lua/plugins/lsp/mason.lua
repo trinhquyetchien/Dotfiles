@@ -18,7 +18,7 @@ return {
         mason_lspconfig.setup({
             ensure_installed = {
                 "lua_ls", "ts_ls", "html", "cssls", "tailwindcss",
-                "jsonls", "kotlin_language_server", "jdtls", "clangd",
+                "jsonls", "jdtls", "clangd",
                 "pyright", "lemminx", "marksman", "gopls",
             },
         })
@@ -48,6 +48,7 @@ return {
             },
             ts_ls = {},
             html = {},
+            kotlin_lsp={},
             pyright = {
                 on_init = function(client)
                     if vim.env.VIRTUAL_ENV then

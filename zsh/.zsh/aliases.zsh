@@ -34,6 +34,9 @@ alias github='google-chrome https://github.com'
 alias insta="google-chrome https://www.instagram.com"
 alias abolo="google-chrome https://app.alobo.vn"
 alias face="google-chrome https://www.facebook.com"
+alias jira="google-chrome https://trinhquyetchien2005.atlassian.net"
+alias clickup="google-chrome https://app.clickup.com"
+alias trello="google-chrome https://trello.com"
 
 soical() {
     insta
@@ -54,4 +57,10 @@ work() {
     email
     abolo
     driver
+}
+
+pm(){
+    clickup
+    trello
+    jira
 }
