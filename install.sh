@@ -14,7 +14,7 @@ info "🛠 Đang cài đặt phần mềm và các bộ SDK..."
 ./scripts/setup-shell.sh
 ./scripts/software.sh
 ./scripts/languages.sh
-./scripts/database.sh
+./scripts/databases.sh
 ./scripts/dev-tools.sh
 ./scripts/resources.sh
 ./scripts/extensions.sh

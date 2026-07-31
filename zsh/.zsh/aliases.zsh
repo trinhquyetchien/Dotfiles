@@ -36,7 +36,8 @@ alias abolo="google-chrome https://app.alobo.vn"
 alias face="google-chrome https://www.facebook.com"
 alias jira="google-chrome https://trinhquyetchien2005.atlassian.net"
 alias clickup="google-chrome https://app.clickup.com"
-alias trello="google-chrome https://trello.com"
+alias notion="google-chrome https://app.notion.com"
+alias map=" google-chrome https://www.google.com/maps"
 
 soical() {
     insta
@@ -61,6 +62,6 @@ work() {
 
 pm(){
     clickup
-    trello
     jira
+    notion
 }

@@ -1,30 +1,7 @@
-return {
-  "3rd/image.nvim",
-  opts = {
-    backend = "sixel",
-    processor = "magick_cli",
-    integrations = {
-      markdown = { enabled = false },
-      asciidoc = { enabled = false },
-      neorg = { enabled = false },
-      rst = { enabled = false },
-      typst = { enabled = false },
-      html = { enabled = false },
-      css = { enabled = false },
+return{
+    "3rd/image.nvim",
+    opts = {
+        backend = "kitty",
+        processor = "magick_rock",
     },
-    max_width_window_percentage = 90,
-    max_height_window_percentage = 90,
-    window_overlap_clear_enabled = true,
-    editor_only_render_when_focused = true,
-    tmux_show_only_in_active_window = true,
-    hijack_file_patterns = {
-      "*.png",
-      "*.jpg",
-      "*.jpeg",
-      "*.gif",
-      "*.webp",
-      "*.bmp",
-      "*.avif",
-    },
-  },
 }

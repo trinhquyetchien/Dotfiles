@@ -8,3 +8,4 @@ setopt SHARE_HISTORY
 # Khác
 setopt AUTO_CD        # Chỉ cần gõ tên thư mục là tự cd vào
 setopt NO_BEEP       # Tắt tiếng bip khó chịu
+

@@ -13,6 +13,8 @@ zinit light zsh-users/zsh-completions
 zinit ice depth=1; zinit light jeffreytse/zsh-vi-mode
 zinit light Aloxaf/fzf-tab
 
+eval "$(luarocks path --local)"
+
 function has_command() {
   command -v "$1" >/dev/null 2>&1
 }
@@ -30,3 +32,10 @@ has_command fnm && eval "$(fnm env --use-on-cd)"
 [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ] && source "$HOME/miniconda3/etc/profile.d/conda.sh"
 
 has_command starship && eval "$(starship init zsh)"
+
+
+# Added by Antigravity CLI installer
+export PATH="/home/trinhquyetchien/.local/bin:$PATH"
+
+# simutil
+export PATH="/home/trinhquyetchien/.local/lib/simutil:$PATH"

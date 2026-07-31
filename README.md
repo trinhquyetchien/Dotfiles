@@ -1,200 +1,161 @@
-# Dotfiles
+# 🚀 Personal Dotfiles
 
-Cấu hình môi trường phát triển cá nhân trên Ubuntu GNOME, được quản lý bằng
-[GNU Stow](https://www.gnu.org/software/stow/).
+![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04%2B-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
+![Zsh](https://img.shields.io/badge/Zsh-Shell-4EAA25?style=for-the-badge&logo=gnu-bash&logoColor=white)
+![Neovim](https://img.shields.io/badge/Neovim-0.9%2B-57A143?style=for-the-badge&logo=neovim&logoColor=white)
+![Tmux](https://img.shields.io/badge/Tmux-Terminal_Multiplexer-1BB91F?style=for-the-badge&logo=tmux&logoColor=white)
+![WezTerm](https://img.shields.io/badge/WezTerm-Terminal_Emulator-blue?style=for-the-badge)
 
-Repo tập trung vào Zsh, Neovim, Tmux, WezTerm và Starship. Các script đi kèm
-còn có thể cài thêm công cụ lập trình, SDK, database, ứng dụng desktop và một
-số tùy chỉnh hệ thống.
+Bộ cấu hình (Dotfiles) cá nhân trên môi trường **Ubuntu GNOME**, được quản lý dễ dàng bằng [GNU Stow](https://www.gnu.org/software/stow/). 
 
-> Đây là cấu hình cá nhân, không phải bộ cài đặt Linux dùng chung. Hãy đọc các
-> script và sao lưu cấu hình hiện tại trước khi sử dụng.
+Mục tiêu của repository này là cung cấp một môi trường phát triển nhanh, mạnh mẽ và nhất quán, tập trung vào các công cụ CLI hiện đại. Các script đi kèm có thể tự động cài đặt SDK, database, phần mềm và tinh chỉnh hệ thống.
 
-## Môi trường mục tiêu
+> ⚠️ **Cảnh báo**: Đây là cấu hình cá nhân được thiết kế riêng. Vui lòng đọc kỹ mã nguồn các script và **sao lưu dữ liệu/cấu hình hiện tại** của bạn trước khi chạy tự động!
 
-Cấu hình và script hiện được viết cho:
+---
 
-- Ubuntu GNOME trên máy `x86_64`
-- APT, Snap và systemd
-- Zsh làm shell mặc định
-- WezTerm làm terminal mặc định
-- JetBrainsMono Nerd Font
+## 🎯 Môi trường mục tiêu
 
-Các bản phân phối Linux, desktop environment hoặc kiến trúc CPU khác có thể
-dùng riêng các gói Stow, nhưng không nên chạy toàn bộ installer nếu chưa chỉnh
-lại script.
+- **OS**: Ubuntu GNOME (`x86_64`)
+- **Package Managers**: APT, Snap
+- **Init System**: systemd
+- **Terminal mặc định**: WezTerm
+- **Shell mặc định**: Zsh + Starship prompt
+- **Font**: JetBrainsMono Nerd Font
 
-## Thành phần
+*(Các bản phân phối Linux khác vẫn có thể dùng các module cấu hình thông qua `stow`, nhưng hạn chế dùng script cài đặt toàn hệ thống).*
 
-| Thư mục | Nội dung |
+---
+
+## 📦 Các thành phần chính
+
+| Thư mục/Module | Chức năng chi tiết |
 | --- | --- |
-| `nvim` | Neovim, lazy.nvim, LSP, completion, Treesitter, Telescope và DAP |
-| `zsh` | Zsh, Zinit, alias, biến môi trường và tích hợp Starship |
-| `tmux` | Tmux, TPM, tmux-resurrect, tmux-continuum và tmux-yank |
-| `wezterm` | Giao diện, font, phím tắt và sự kiện WezTerm |
-| `starship` | Starship prompt |
-| `libinput` | Cử chỉ touchpad cho libinput-gestures |
-| `scripts` | Script cài phần mềm, SDK, database và tùy chỉnh Ubuntu |
-| `install.sh` | Script điều phối việc cài toàn bộ môi trường |
+| 📁 `nvim` | Cấu hình Neovim cực mượt với `lazy.nvim`, tích hợp LSP, Treesitter, Telescope, DAP và các plugin hỗ trợ code Java, Kotlin, Android, TS/JS, Python, Flutter. |
+| 📁 `zsh` | Thiết lập Zsh với Zinit, aliases hữu ích, biến môi trường và giao diện Starship. |
+| 📁 `tmux` | Tmux với TPM, tmux-resurrect, tmux-continuum, tmux-yank, chia pane tiện lợi. |
+| 📁 `wezterm` | Giao diện WezTerm, font chữ, phím tắt và xử lý sự kiện mượt mà. |
+| 📁 `starship` | Tùy chỉnh Starship prompt đẹp và cung cấp đủ thông tin ngữ cảnh. |
+| 📁 `libinput` | Cử chỉ touchpad đa điểm sử dụng `libinput-gestures`. |
+| 📁 `scripts/` | Chứa các script cài đặt độc lập: phần mềm, SDK, Database, tinh chỉnh GNOME... |
+| 📄 `install.sh` | Script bootstrap để thiết lập nhanh chóng toàn bộ máy từ đầu. |
 
-Neovim được cấu hình cho nhiều workflow, gồm Java, Kotlin, Android, Flutter,
-JavaScript/TypeScript và Python. Một số tính năng chỉ hoạt động khi SDK hoặc
-công cụ tương ứng đã được cài.
+---
 
-## Cài riêng dotfiles
+## 🛠 Hướng dẫn cài đặt
 
-Đây là cách nên dùng nếu chỉ muốn áp dụng các file cấu hình mà không thay đổi
-toàn bộ hệ thống.
+Bạn có hai cách để sử dụng repository này: **Cài đặt toàn bộ (Full Install)** hoặc **Cài đặt từng phần (Modular Install)**.
 
-### 1. Cài công cụ cần thiết
+### Cách 1: Cài đặt từng phần (Khuyên dùng)
+Áp dụng nếu bạn chỉ muốn lấy cấu hình (Neovim, Zsh, Tmux...) mà không muốn script can thiệp vào các phần mềm khác của hệ thống.
 
+**1. Cài đặt các gói phụ thuộc cơ bản:**
 ```bash
 sudo apt update
 sudo apt install -y git stow zsh tmux
 ```
+*(Hãy tự cài đặt Neovim, WezTerm, Starship nếu muốn dùng config tương ứng).*
 
-Cài thêm Neovim, WezTerm và Starship nếu muốn sử dụng cấu hình tương ứng.
-
-### 2. Clone repo
-
+**2. Clone repository:**
 ```bash
 git clone https://github.com/trinhquyetchien/Dotfiles.git ~/Dotfiles
 cd ~/Dotfiles
 ```
 
-### 3. Sao lưu cấu hình đang có
-
-GNU Stow sẽ báo lỗi nếu file đích đã tồn tại và không phải symlink do Stow quản
-lý. Hãy di chuyển các file cần giữ trước khi tiếp tục:
-
+**3. Sao lưu cấu hình hiện tại:**
+Stow sẽ báo lỗi nếu symlink bị trùng với file đã có. Hãy di chuyển hoặc xóa chúng:
 ```bash
 mkdir -p ~/.dotfiles-backup
 mv ~/.zshrc ~/.tmux.conf ~/.dotfiles-backup/ 2>/dev/null || true
 mv ~/.config/nvim ~/.config/wezterm ~/.dotfiles-backup/ 2>/dev/null || true
-mv ~/.config/starship.toml ~/.config/libinput-gestures.conf \
-  ~/.dotfiles-backup/ 2>/dev/null || true
+mv ~/.config/starship.toml ~/.config/libinput-gestures.conf ~/.dotfiles-backup/ 2>/dev/null || true
 ```
 
-### 4. Tạo symlink
-
-Chỉ chọn các gói bạn thực sự muốn dùng:
-
+**4. Kích hoạt module bằng GNU Stow:**
+Bạn chỉ cần `stow` các thành phần muốn dùng:
 ```bash
+# Cài đặt tất cả:
 stow zsh nvim wezterm starship tmux libinput
-```
 
-Ví dụ chỉ cài cấu hình Neovim và Tmux:
-
-```bash
+# Hoặc chỉ chọn vài công cụ:
 stow nvim tmux
 ```
 
-Khởi động Neovim để lazy.nvim tự cài plugin:
+**5. Hoàn tất thiết lập:**
+- **Neovim**: Mở `nvim`, `lazy.nvim` sẽ tự động tải các plugins.
+- **Tmux**: Cài TPM nếu chưa có: `git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm`. Sau đó vào Tmux, nhấn `Prefix` + `I` để cài plugins.
+
+### Cách 2: Cài đặt tự động toàn bộ (Full Installer)
+Dành cho máy tính Ubuntu mới cài đặt lại hoặc máy trắng. 
+
+Script `install.sh` sẽ thực hiện:
+- Cài Zsh, Neovim, WezTerm, Docker...
+- Cài đặt VS Code, Postman, Android Studio.
+- Setup Java, Kotlin, Node.js, Miniconda, Android SDK.
+- Cài DB (PostgreSQL, MySQL, Redis).
+- Setup touchpad gestures, đổi shell mặc định và cài GRUB theme.
+- **Lưu ý**: Script sẽ `rm -rf` các config cũ (Zsh, Neovim, Tmux...) thay vì sao lưu. Hãy cẩn thận!
 
 ```bash
-nvim
+cd ~/Dotfiles
+# Khuyên bạn nên mở và đọc các file script trước
+./install.sh
 ```
+*(Nếu gặp trục trặc, bạn có thể chạy lẻ từng script trong thư mục `scripts/`)*
 
-TPM sẽ quản lý các plugin Tmux được khai báo trong cấu hình. Nếu TPM chưa có:
+---
 
+## 🗑️ Gỡ bỏ cấu hình
+
+Nếu bạn cài đặt theo **Cách 1** (dùng GNU Stow), bạn có thể gỡ các symlink cực kỳ dễ dàng:
 ```bash
-git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-```
-
-Sau đó mở Tmux và nhấn `Ctrl-a`, rồi `I` để cài plugin.
-
-## Gỡ cấu hình
-
-Chạy từ thư mục repo:
-
-```bash
+cd ~/Dotfiles
 stow -D zsh nvim wezterm starship tmux libinput
 ```
+*(Lệnh này không gỡ phần mềm, chỉ thu hồi lại các file cấu hình).*
 
-Lệnh này chỉ gỡ các symlink do Stow tạo, không gỡ ứng dụng hoặc SDK.
+---
 
-## Full installer
-
-`install.sh` là bootstrap script dành cho máy cá nhân mới. Ngoài việc liên kết
-dotfiles, script còn thực hiện nhiều thay đổi cấp hệ thống:
-
-- cài Zsh, Neovim, WezTerm, Docker và các CLI tool;
-- cài VS Code, Postman, Android Studio và ứng dụng desktop qua Snap;
-- cài Java, Kotlin, Gradle, Maven, Node.js, Android SDK và Miniconda;
-- cài PostgreSQL, MySQL, Redis và các công cụ quản trị database;
-- đổi shell, terminal mặc định và input method;
-- cài GNOME extensions, touchpad gestures và GRUB theme;
-- xóa một số cấu hình hiện có trong `$HOME`.
-
-Script cần mạng, quyền `sudo`, Snap, systemd và phiên GNOME đang hoạt động.
-Không chạy script bằng tài khoản `root`.
-
-Hiện tại full installer **chưa sẵn sàng để chạy một mạch**:
-
-- `install.sh` gọi `scripts/database.sh`, trong khi file trong repo là
-  `scripts/databases.sh`;
-- một số bước mở ứng dụng tương tác như `scrcpy`;
-- script xóa cấu hình cũ thay vì tự tạo bản sao lưu;
-- các URL tải binary và phiên bản SDK có thể thay đổi theo thời gian.
-
-Nên chạy từng script sau khi đã đọc và chỉnh cho phù hợp với máy:
-
-```bash
-chmod +x scripts/*.sh
-./scripts/setup-shell.sh
-./scripts/software.sh
-./scripts/languages.sh
-./scripts/databases.sh
-./scripts/dev-tools.sh
-./scripts/resources.sh
-./scripts/extensions.sh
-./scripts/grubtheme.sh
-```
-
-## Phím tắt chính
+## ⌨️ Phím tắt (Keybindings)
 
 ### Neovim
-
-Leader key là `Space`.
+*Leader key mặc định là `Space`.*
 
 | Phím | Chức năng |
 | --- | --- |
-| `<Space>e` | Bật/tắt Neo-tree |
+| `<Space>e` | Bật/tắt Neo-tree (File Explorer) |
 | `<Space>sf` | Tìm file bằng Telescope |
-| `<Space>sg` | Tìm nội dung trong project |
+| `<Space>sg` | Tìm text trong project bằng Telescope |
 | `<Space>tt` | Mở floating terminal |
-| `<Space>f` | Format buffer |
-| `<Space>m` | Mở Mason |
-| `<Space>l` | Mở lazy.nvim |
-| `gd` | Đi tới định nghĩa |
-| `K` | Hiện LSP hover |
-| `H` / `L` | Chuyển buffer trước/sau |
+| `<Space>f` | Format buffer hiện tại |
+| `<Space>m` | Quản lý LSP/DAP/Linter với Mason |
+| `<Space>l` | Mở trình quản lý plugin `lazy.nvim` |
+| `gd` | Nhảy đến định nghĩa (Go to definition) |
+| `K` | Hiển thị thông tin LSP (Hover documentation) |
+| `H` / `L` | Chuyển đổi qua lại giữa các buffer (tabs) |
 
-Toàn bộ keymap nằm tại
-[`nvim/.config/nvim/lua/core/keymaps.lua`](nvim/.config/nvim/lua/core/keymaps.lua).
+> 💡 *Toàn bộ phím tắt tùy chỉnh có thể xem tại: [`nvim/.config/nvim/lua/core/keymaps.lua`](nvim/.config/nvim/lua/core/keymaps.lua).*
 
 ### Tmux
-
-Prefix key là `Ctrl-a`.
+*Prefix key là `Ctrl-a` (thay cho `Ctrl-b` mặc định).*
 
 | Phím | Chức năng |
 | --- | --- |
-| `Prefix /` | Chia pane theo chiều ngang |
-| `Prefix -` | Chia pane theo chiều dọc |
-| `Prefix c` | Tạo window tại thư mục hiện tại |
-| `Prefix h/j/k/l` | Di chuyển giữa các pane |
-| `Prefix H/J/K/L` | Thay đổi kích thước pane |
-| `Prefix r` | Reload cấu hình |
-| `Prefix Ctrl-s` | Lưu session |
-| `Prefix Ctrl-r` | Khôi phục session |
+| `Prefix` + `/` | Chia pane theo chiều ngang |
+| `Prefix` + `-` | Chia pane theo chiều dọc |
+| `Prefix` + `c` | Tạo window mới tại thư mục hiện tại |
+| `Prefix` + `h/j/k/l` | Chuyển hướng giữa các pane |
+| `Prefix` + `H/J/K/L` | Thay đổi kích thước pane |
+| `Prefix` + `r` | Tải lại (Reload) cấu hình Tmux nhanh |
+| `Prefix` + `Ctrl-s` | Lưu session hiện tại (tmux-resurrect) |
+| `Prefix` + `Ctrl-r` | Khôi phục session đã lưu |
 
-## Lưu ý bảo trì
+---
 
-- `lazy-lock.json` khóa phiên bản plugin Neovim để các lần cài nhất quán hơn.
-- Cấu hình Zsh giả định SDKMAN, FNM, Miniconda và Android SDK nằm tại các đường
-  dẫn mặc định trong home directory.
-- Cấu hình WezTerm dùng `/bin/zsh` và font JetBrains Mono.
-- Không commit API key hoặc thông tin bí mật vào repo; dùng biến môi trường cục
-  bộ cho các plugin cần credential.
-- Repo hiện chưa kèm giấy phép mã nguồn. Mặc định giữ nguyên quyền tác giả cho
-  đến khi một file `LICENSE` được bổ sung.
+## 📝 Lưu ý & Bảo trì
+
+1. **Phiên bản Neovim Plugin**: File `lazy-lock.json` được commit lên để khóa phiên bản plugin, đảm bảo hệ thống không bị lỗi ngớ ngẩn khi cài ở máy khác.
+2. **Đường dẫn mặc định**: Cấu hình Zsh giả định các công cụ quản lý như `SDKMAN`, `FNM`, `Miniconda`, `Android SDK` được đặt ở thư mục home (`~`).
+3. **WezTerm**: Sử dụng `/bin/zsh` làm shell khởi động và sử dụng font `JetBrains Mono`. Đảm bảo font chữ đã được cài.
+4. **Bảo mật**: Tuyệt đối không commit API keys hay thông tin nhạy cảm. Hãy dùng `.env` hoặc các biến môi trường được export cục bộ.
+5. **License**: Repo hiện chưa đính kèm giấy phép sử dụng mã nguồn. Mặc định quyền tác giả thuộc về chủ repo cho đến khi file `LICENSE` được thêm vào.
