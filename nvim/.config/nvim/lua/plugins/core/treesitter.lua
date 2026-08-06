@@ -1,6 +1,6 @@
 return {
 	"nvim-treesitter/nvim-treesitter",
-	branch = "master",
+	branch = "main",
 	build = ":TSUpdate",
 	event = { "BufReadPost", "BufNewFile" },
 	opts = {
@@ -13,6 +13,7 @@ return {
 			"rust",
 			"bash",
 			"markdown",
+			"markdown_inline",
 			"html",
 			"css",
 			"gomod",

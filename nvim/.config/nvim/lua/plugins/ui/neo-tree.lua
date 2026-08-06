@@ -6,6 +6,7 @@ return {
 		"nvim-tree/nvim-web-devicons",
 		"MunifTanjim/nui.nvim",
 	},
+
 	config = function()
 		require("neo-tree").setup({
 			close_if_last_window = true,
@@ -15,6 +16,7 @@ return {
 
 			default_component_configs = {
 				indent = { padding = 1 },
+
 				icon = {
 					folder_closed = "",
 					folder_open = "",
@@ -22,6 +24,7 @@ return {
 					default = "",
 					symlink = "",
 				},
+
 				git_status = {
 					symbols = {
 						added = "",
@@ -41,6 +44,7 @@ return {
 			window = {
 				position = "left",
 				width = 40,
+
 				mappings = {
 					["h"] = "close_node",
 					["l"] = "open",
@@ -48,6 +52,7 @@ return {
 					["d"] = "delete",
 					["r"] = "rename",
 					["q"] = "close_window",
+                    ["p"] = "toggle_preview",
 					["E"] = "expand_all_nodes",
 					["C"] = "close_all_nodes",
 					["."] = "set_root",
@@ -60,13 +65,16 @@ return {
 					hide_dotfiles = false,
 					hide_gitignored = true,
 				},
+
 				follow_current_file = {
 					enabled = true,
 					leave_dirs_open = false,
 					group_empty_dirs = true,
 				},
+
 				use_libuv_file_watcher = true,
 			},
 		})
 	end,
 }
+
