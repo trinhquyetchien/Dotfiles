@@ -16,14 +16,12 @@ vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
     spec = {
-        -- Tự động import các file cấu hình từ các thư mục con
         { import = "plugins.core" },
         { import = "plugins.ui" },
         { import = "plugins.edit" },
         { import = "plugins.lsp" },
         { import = "plugins.extension" },
 
-        -- Các plugin bổ trợ/dependencies chung (nếu cần)
         { "nvim-lua/plenary.nvim" },
         { "nvim-tree/nvim-web-devicons" },
         { "mikavilpas/yazi.nvim" },

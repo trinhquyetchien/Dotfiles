@@ -52,13 +52,13 @@ return {
 					["d"] = "delete",
 					["r"] = "rename",
 					["q"] = "close_window",
-                    ["p"] = "toggle_preview",
 					["E"] = "expand_all_nodes",
 					["C"] = "close_all_nodes",
 					["."] = "set_root",
 					[","] = "navigate_up",
 				},
 			},
+
 
 			filesystem = {
 				filtered_items = {
@@ -77,4 +77,3 @@ return {
 		})
 	end,
 }
-

@@ -11,6 +11,7 @@ alias lzs="lazysql"
 alias ..="cd .."
 alias .="cd"
 alias note=" cd ~/Note; v"
+alias kanban="cd ~/Note/Kanban; v"
 
 # Shell
 alias cl="clear"
