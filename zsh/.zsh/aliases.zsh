@@ -11,7 +11,6 @@ alias lzs="lazysql"
 alias ..="cd .."
 alias .="cd"
 alias note=" cd ~/Note; v"
-alias kanban="cd ~/Note/Kanban; v"
 
 # Shell
 alias cl="clear"
@@ -23,6 +22,9 @@ alias sleep='systemctl suspend'              # Tạm dừng (ngủ nhẹ)
 alias shutdown='sudo poweroff'                 # Tắt máy hoàn toàn
 alias out='gnome-session-quit --logout' # Đăng xuất nhanh
 alias lock='loginctl lock-session'  # Khóa màn hình
+
+alias today='nvim ~/Note/Daily/"$(date +%Y-%m-%d).md"'
+alias nix='google-chrome https://digital.nix.edu.vn/dashboard'
 
 # Work websites
 alias email='google-chrome https://mail.google.com/mail'
@@ -46,6 +48,7 @@ soical() {
     face 
 }
 
+
 chat() {
     mess
     zalo
@@ -66,3 +69,13 @@ pm(){
     jira
     notion
 }
+
+function accept-line {
+    if [[ "$BUFFER" =~ '^[[:space:]]*[0-9]+[[:space:]]*([+*/%-][[:space:]]*[0-9]+[[:space:]]*)+$' ]]; then
+        BUFFER="echo \$(( $BUFFER ))"
+    fi
+
+    zle .accept-line
+}
+
+zle -N accept-line

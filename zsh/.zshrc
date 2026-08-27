@@ -25,6 +25,16 @@ if [ -d "$HOME/.zsh" ]; then
   done
 fi
 
+function accept-line {
+    if [[ "$BUFFER" =~ '^[[:space:]]*[0-9]+[[:space:]]*([+*/%-][[:space:]]*[0-9]+[[:space:]]*)+$' ]]; then
+        BUFFER="echo \$(( $BUFFER ))"
+    fi
+
+    zle .accept-line
+}
+
+zle -N accept-line
+
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
 
 has_command fnm && eval "$(fnm env --use-on-cd)"
@@ -39,3 +49,5 @@ export PATH="/home/trinhquyetchien/.local/bin:$PATH"
 
 # simutil
 export PATH="/home/trinhquyetchien/.local/lib/simutil:$PATH"
+
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv zsh)"
