@@ -24,10 +24,10 @@ alias out='gnome-session-quit --logout' # Đăng xuất nhanh
 alias lock='loginctl lock-session'  # Khóa màn hình
 
 alias today='nvim ~/Note/Daily/"$(date +%Y-%m-%d).md"'
-alias nix='google-chrome https://digital.nix.edu.vn/dashboard'
 
 # Work websites
 alias email='google-chrome https://mail.google.com/mail'
+alias nix='google-chrome https://digital.nix.edu.vn/dashboard'
 alias zalo='google-chrome https://chat.zalo.me'
 alias mess='google-chrome https://www.messenger.com'
 alias driver='google-chrome https://drive.google.com'
@@ -41,6 +41,14 @@ alias jira="google-chrome https://trinhquyetchien2005.atlassian.net"
 alias clickup="google-chrome https://app.clickup.com"
 alias notion="google-chrome https://app.notion.com"
 alias map=" google-chrome https://www.google.com/maps"
+alias supabase='google-chrome https://supabase.com/dashboard'
+alias vercel='google-chrome https://vercel.com/'
+alias aws='google-chrome https://settings.aws.com/projects'
+alias firebase='google-chrome https://console.firebase.google.com/u/0/'
+alias mongodb='google-chrome https://cloud.mongodb.com/v2#/org/675be6e45f137433a9fe0940/projects'
+alias postman='google-chrome https://trinhquyetchiens-team.postman.co/home'
+alias neon='google-chrome https://console.neon.tech/app/org-fancy-wildflower-39437087/projects'
+alias cloudflare='google-chrome https://dash.cloudflare.com/f6c59e033046e634d8d128fe4ae30473/home'
 
 soical() {
     insta
@@ -67,7 +75,6 @@ work() {
 pm(){
     clickup
     jira
-    notion
 }
 
 function accept-line {
