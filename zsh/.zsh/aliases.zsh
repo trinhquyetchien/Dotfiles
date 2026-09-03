@@ -1,31 +1,23 @@
-# Editors
 alias v="nvim"
-
-# Terminal tools
 alias t="tmux"
 alias lzg="lazygit"
 alias lzd="lazydocker"
 alias lzs="lazysql"
 
-# Navigation
 alias ..="cd .."
 alias .="cd"
 alias note=" cd ~/Note; v"
+alias today='nvim ~/Note/Daily/"$(date +%Y-%m-%d).md"'
 
-# Shell
 alias cl="clear"
 alias sz='source ~/.zshrc'
 
-# System session
-alias hibernate='sudo systemctl hibernate'      # Ngủ đông (lưu vào swap 31GB của bạn)
-alias sleep='systemctl suspend'              # Tạm dừng (ngủ nhẹ)
-alias shutdown='sudo poweroff'                 # Tắt máy hoàn toàn
-alias out='gnome-session-quit --logout' # Đăng xuất nhanh
-alias lock='loginctl lock-session'  # Khóa màn hình
+alias hibernate='sudo systemctl hibernate'
+alias sleep='systemctl suspend'              
+alias off='sudo poweroff'                 
+alias out='gnome-session-quit --logout' 
+alias lock='loginctl lock-session'  
 
-alias today='nvim ~/Note/Daily/"$(date +%Y-%m-%d).md"'
-
-# Work websites
 alias email='google-chrome https://mail.google.com/mail'
 alias nix='google-chrome https://digital.nix.edu.vn/dashboard'
 alias zalo='google-chrome https://chat.zalo.me'
@@ -77,12 +69,3 @@ pm(){
     jira
 }
 
-function accept-line {
-    if [[ "$BUFFER" =~ '^[[:space:]]*[0-9]+[[:space:]]*([+*/%-][[:space:]]*[0-9]+[[:space:]]*)+$' ]]; then
-        BUFFER="echo \$(( $BUFFER ))"
-    fi
-
-    zle .accept-line
-}
-
-zle -N accept-line
