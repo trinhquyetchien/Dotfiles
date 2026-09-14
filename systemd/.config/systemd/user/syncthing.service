@@ -1,0 +1,13 @@
+[Unit]
+Description=Syncthing - File Synchronization
+Documentation=man:syncthing(1)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/syncthing serve --no-browser --no-restart
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
