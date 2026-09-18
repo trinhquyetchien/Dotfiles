@@ -1,4 +1,4 @@
-# 🚀 Personal Dotfiles
+# Personal Dotfiles
 
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04%2B-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
 ![Zsh](https://img.shields.io/badge/Zsh-Shell-4EAA25?style=for-the-badge&logo=gnu-bash&logoColor=white)

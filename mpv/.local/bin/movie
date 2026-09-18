@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Các định dạng video phổ biến
+VIDEO_FORMATS='.*\.\(mp4\|mkv\|avi\|mov\|flv\|wmv\|webm\|m4v\)$'
+
+# Tìm các file video và hiển thị menu bằng fzf
+# - fzf sẽ tạo ra một menu dạng danh sách tương tác trên terminal
+SELECTED_MOVIE=$(find . -type f -iregex "$VIDEO_FORMATS" 2>/dev/null | fzf \
+    --prompt="🎬 Chọn phim để xem: " \
+    --border="rounded" \
+    --margin=5% \
+    --color="border:#7aa2f7,prompt:#9ece6a,pointer:#e0af68" \
+    --info=inline)
+
+# Kiểm tra xem người dùng có chọn phim không (không bấm ESC)
+if [ -n "$SELECTED_MOVIE" ]; then
+    echo "🍿 Đang mở: $SELECTED_MOVIE"
+    
+    # Mở phim bằng mpv
+    # mpv là trình phát video cực kỳ tối giản, có sẵn thanh điều khiển (OSC)
+    # gồm các nút: Play/Pause, Seek (tua), Fullscreen (mở rộng) giống hệt web.
+    # --force-window=yes đảm bảo luôn mở cửa sổ (ngay cả khi video chỉ có tiếng)
+    mpv --force-window=yes "$SELECTED_MOVIE"
+else
+    echo "❌ Đã hủy chọn phim."
+fi

@@ -32,5 +32,9 @@ export PATH=$PATH:$ANDROID_HOME/tools
 export PATH=$PATH:$ANDROID_HOME/tools/bin
 export PATH="$PATH:$HOME/Applications/scrcpy"
 
+# Syncthing
+export SYNCTHING_API_KEY="sMxpAnHe7i9huMjrobythGXVEQRLVyxp"
+export SYNCTHING_FOLDER_ID="Note"
+
 export QT_QPA_PLATFORM=xcb
 

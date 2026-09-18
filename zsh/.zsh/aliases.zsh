@@ -7,7 +7,7 @@ alias lzs="lazysql"
 alias ..="cd .."
 alias .="cd"
 alias note=" cd ~/Note; v"
-alias today='nvim ~/Note/Daily/"$(date +%Y-%m-%d).md"'
+alias today='cd ~/Note/Daily; nvim "$(date +%Y-%m-%d).md"'
 
 alias cl="clear"
 alias sz='source ~/.zshrc'
