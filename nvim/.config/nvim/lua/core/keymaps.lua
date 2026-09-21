@@ -6,6 +6,8 @@ vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
 keymap.set("i", "jk", "<Esc>", { desc = "Exit insert mode" })
+keymap.set("v", "jk", "<Esc>", { desc = "Exit visual mode" })
+
 
 keymap.set("n", "<leader>w", ":w<CR>", { desc = "Save file" })
 keymap.set("n", "<leader>q", ":q<CR>", { desc = "Quit window" })

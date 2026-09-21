@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Exec=python3 /home/trinhquyetchien/.local/bin/md_tray_app.py
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name=Markdown Daily Notes Tray
+Comment=Topbar icon for daily markdown notes
+Icon=text-x-generic
