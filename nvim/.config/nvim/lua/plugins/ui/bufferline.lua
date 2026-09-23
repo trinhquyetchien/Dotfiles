@@ -19,7 +19,10 @@ return {
         require("bufferline").setup({
             options = {
                 mode = "buffers",
-                separator_style = "slant",
+                -- Bỏ dấu gạch bên trái, chỉ hiện dấu phân cách bên phải
+                separator_style = { "", "▕" }, 
+                -- Bỏ luôn dấu gạch báo tab đang active
+                indicator = { style = "none" },
                 always_show_bufferline = true,
                 show_buffer_close_icons = true,
                 show_close_icon = false,

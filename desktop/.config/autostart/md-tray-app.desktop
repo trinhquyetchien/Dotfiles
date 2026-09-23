@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Exec=python3 /home/trinhquyetchien/.local/bin/md_tray_app.py
+Exec=python3 /home/trinhquyetchien/Projects/Main/Personal/MarkdownTray/md_tray_app.py
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
