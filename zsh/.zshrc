@@ -51,3 +51,6 @@ export PATH="/home/trinhquyetchien/.local/bin:$PATH"
 export PATH="/home/trinhquyetchien/.local/lib/simutil:$PATH"
 
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv zsh)"
+
+# Alias to quickly open MarkdownNote calendar
+alias calendar='pkill -SIGUSR1 -f "(md_tray_app\\.py|MarkdownTray)"'

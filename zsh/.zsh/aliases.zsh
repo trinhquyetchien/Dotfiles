@@ -23,7 +23,6 @@ alias nix='google-chrome https://digital.nix.edu.vn/dashboard'
 alias zalo='google-chrome https://chat.zalo.me'
 alias mess='google-chrome https://www.messenger.com'
 alias driver='google-chrome https://drive.google.com'
-alias calendar='google-chrome https://calendar.google.com'
 alias youtube='google-chrome https://youtube.com'
 alias github='google-chrome https://github.com'
 alias insta="google-chrome https://www.instagram.com"
