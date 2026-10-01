@@ -41,7 +41,8 @@ function M.apply_to_config(config)
 	config.enable_tab_bar = false
 	config.hide_tab_bar_if_only_one_tab = false
 	config.use_fancy_tab_bar = false
-	config.window_decorations = "RESIZE"
+	config.window_decorations = "RESIZE|TITLE"
+	config.enable_wayland = false
 	config.default_cursor_style = "BlinkingBlock"
 
 	config.window_background_opacity = 0.8

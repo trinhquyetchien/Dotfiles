@@ -36,5 +36,6 @@ export PATH="$PATH:$HOME/Applications/scrcpy"
 export SYNCTHING_API_KEY="sMxpAnHe7i9huMjrobythGXVEQRLVyxp"
 export SYNCTHING_FOLDER_ID="Note"
 
-export QT_QPA_PLATFORM=xcb
+export QT_QPA_PLATFORM="wayland;xcb"
 
+export ELECTRON_OZONE_PLATFORM_HINT="auto"
