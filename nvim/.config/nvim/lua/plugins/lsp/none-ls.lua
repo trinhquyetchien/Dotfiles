@@ -18,6 +18,10 @@ return {
                 -- Go
                 null_ls.builtins.formatting.goimports,
                 null_ls.builtins.formatting.gofmt,
+
+                -- Kotlin & Java
+                null_ls.builtins.formatting.ktlint,
+                null_ls.builtins.formatting.google_java_format,
             },
         })
     end,

@@ -1,13 +1,10 @@
 return {
-    "iamironz/android-nvim-plugin",
+    "rizukirr/droid-nvim",
     dependencies = {
-        "nvim-lua/plenary.nvim",
-        "hrsh7th/nvim-cmp",
+        "nvim-telescope/telescope.nvim",
     },
+    opts = {},
     config = function()
-        require("android").setup({
-            -- Tự động tìm Android SDK
-            sdk_path = os.getenv("HOME") .. "/Android/Sdk",
-        })
+        require("droid").setup({})
     end,
 }

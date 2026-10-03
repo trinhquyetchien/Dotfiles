@@ -27,6 +27,9 @@ return {
 			"toml",
 			"dockerfile",
 			"sql",
+			"java",
+			"kotlin",
+			"xml",
 		},
 		highlight = {
 			enable = true,
