@@ -44,13 +44,19 @@ has_command fnm && eval "$(fnm env --use-on-cd)"
 has_command starship && eval "$(starship init zsh)"
 
 
-# Added by Antigravity CLI installer
-export PATH="/home/trinhquyetchien/.local/bin:$PATH"
+# User local bin
+export PATH="$HOME/.local/bin:$PATH"
 
-# simutil
-export PATH="/home/trinhquyetchien/.local/lib/simutil:$PATH"
+# simutil (if present)
+[ -d "$HOME/.local/lib/simutil" ] && export PATH="$HOME/.local/lib/simutil:$PATH"
 
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv zsh)"
+# Homebrew (if installed)
+if [ -x "/home/linuxbrew/.linuxbrew/bin/brew" ]; then
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv zsh)"
+elif [ -x "$HOME/.linuxbrew/bin/brew" ]; then
+  eval "$($HOME/.linuxbrew/bin/brew shellenv zsh)"
+fi
 
-# Alias to quickly open MarkdownNote calendar
-alias calendar='pkill -SIGUSR1 -f "(md_tray_app\\.py|MarkdownTray)"'
+# Aliases to quickly open MarkdownTray calendar and today's task note
+alias calendar='pkill -SIGHUP -f "([m]d_tray_app\\.py|[M]arkdownTray)" 2>/dev/null || (python3 "$HOME/.local/bin/md_tray_app.py" --calendar >/dev/null 2>&1 &!)'
+alias task='pkill -SIGUSR2 -f "([m]d_tray_app\\.py|[M]arkdownTray)" 2>/dev/null || (python3 "$HOME/.local/bin/md_tray_app.py" --task >/dev/null 2>&1 &!)'

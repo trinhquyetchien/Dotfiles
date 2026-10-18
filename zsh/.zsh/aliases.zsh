@@ -54,9 +54,9 @@ chat() {
     zalo
 }
 
-task() {
-    calendar
-}
+# MarkdownTray
+alias calendar='pkill -SIGHUP -f "([m]d_tray_app\\.py|[M]arkdownTray)" 2>/dev/null || (python3 "$HOME/.local/bin/md_tray_app.py" --calendar >/dev/null 2>&1 &!)'
+alias task='pkill -SIGUSR2 -f "([m]d_tray_app\\.py|[M]arkdownTray)" 2>/dev/null || (python3 "$HOME/.local/bin/md_tray_app.py" --task >/dev/null 2>&1 &!)'
 
 work() {
     email

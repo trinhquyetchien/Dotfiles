@@ -1,0 +1,19 @@
+[Desktop Entry]
+Type=Application
+Name=Markdown Daily Notes Tray
+Comment=Topbar icon and manager for daily markdown notes & calendar
+Exec=sh -c 'exec python3 "$HOME/.local/bin/md_tray_app.py"'
+Icon=md-tray-app
+Terminal=false
+Categories=Utility;Office;TextEditor;
+Keywords=markdown;notes;daily;calendar;task;
+StartupNotify=true
+Actions=Today;Calendar;
+
+[Desktop Action Today]
+Name=Today's Note
+Exec=sh -c 'pkill -SIGUSR2 -f "([m]d_tray_app\\.py|[M]arkdownTray)" 2>/dev/null || (python3 "$HOME/.local/bin/md_tray_app.py" --task >/dev/null 2>&1 &!)'
+
+[Desktop Action Calendar]
+Name=Weekly Calendar
+Exec=sh -c 'pkill -SIGHUP -f "([m]d_tray_app\\.py|[M]arkdownTray)" 2>/dev/null || (python3 "$HOME/.local/bin/md_tray_app.py" --calendar >/dev/null 2>&1 &!)'

@@ -1,0 +1,1433 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-main: #1c1c1e;
+        --bg-header: #2c2c2e;
+        --bg-modal: rgba(44, 44, 46, 0.95);
+        --bg-input: #1c1c1e;
+        --border-color: #38383a;
+        --grid-line: #2c2c2e;
+        --text-main: #f5f5f7;
+        --text-muted: #98989d;
+        --text-today: #0a84ff;
+        --btn-bg: #3a3a3c;
+        --btn-hover: #48484a;
+        --btn-primary: #0a84ff;
+        --btn-danger: #ff453a;
+        --radius: 8px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Be Vietnam Pro", sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        background: var(--bg-main);
+        color: var(--text-main);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Header */
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 24px;
+        background: var(--bg-header);
+        border-bottom: 1px solid var(--border-color);
+        box-shadow: 0 1px 10px rgba(0, 0, 0, 0.1);
+        z-index: 20;
+      }
+
+      .header button {
+        padding: 8px 16px;
+        border: 1px solid var(--border-color);
+        background: var(--btn-bg);
+        color: var(--text-main);
+        border-radius: var(--radius);
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        font-family: inherit;
+        transition: all 0.2s ease;
+      }
+
+      .header button:hover {
+        background: var(--btn-hover);
+        transform: translateY(-1px);
+      }
+
+      .header h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .calendar-container {
+        flex: 1;
+        overflow-y: auto;
+        position: relative;
+        user-select: none;
+        -webkit-user-select: none;
+        background: var(--bg-main);
+      }
+
+      .scroll-inner {
+        display: flex;
+        min-height: 100%;
+        height: max-content;
+      }
+
+      .time-col {
+        width: 65px;
+        flex-shrink: 0;
+        border-right: 1px solid var(--border-color);
+        position: relative;
+        background: var(--bg-main);
+      }
+
+      .time-slot {
+        height: 60px;
+        border-bottom: 1px solid transparent;
+        text-align: right;
+        padding-right: 12px;
+        font-size: 12px;
+        color: var(--text-muted);
+        position: relative;
+        font-weight: 500;
+      }
+
+      .time-slot::after {
+        content: "";
+        position: absolute;
+        right: 0;
+        top: 0;
+        border-bottom: 1px solid var(--border-color);
+        width: 8px;
+      }
+
+      .days-container {
+        display: flex;
+        flex: 1;
+        position: relative;
+      }
+
+      .day-col {
+        flex: 1;
+        position: relative;
+        min-width: 100px;
+      }
+
+      .day-header {
+        text-align: center;
+        font-weight: 600;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border-color);
+        border-right: 1px solid var(--border-color);
+        background: var(--bg-header);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        font-size: 14px;
+        color: var(--text-main);
+      }
+
+      .day-header.today {
+        color: var(--text-today);
+      }
+
+      .grid-lines {
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .grid-line {
+        height: 60px;
+        border-bottom: 1px solid var(--grid-line);
+        border-right: 1px solid var(--border-color);
+        width: 100%;
+        flex-shrink: 0;
+      }
+
+      .event {
+        position: absolute;
+        left: 4px;
+        right: 4px;
+        border-radius: var(--radius);
+        padding: 6px 8px;
+        font-size: 12px;
+        overflow: hidden;
+        cursor: pointer;
+        color: white;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        border-left: 4px solid rgba(255, 255, 255, 0.4);
+        transition:
+          transform 0.30s ease,
+          box-shadow 0.30s ease,
+          filter 0.30s ease;
+      }
+
+      .event:hover {
+        z-index: 20;
+        transform: translateY(-1px) scale(1.01);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        min-height: max-content !important;
+      }
+
+      .event.small {
+        padding: 2px 6px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .event.small .event-title {
+        margin-bottom: 0;
+        font-size: 11px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .event.small .event-time {
+        font-size: 9px;
+        margin-left: 4px;
+        opacity: 0.9;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .event.small .event-note {
+        display: none;
+      }
+      .event.small:hover {
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        padding: 6px 8px;
+      }
+      .event.small:hover .event-title {
+        font-size: 13px;
+        margin-bottom: 3px;
+      }
+      .event.small:hover .event-time {
+        font-size: 10px;
+        margin-left: 0;
+        margin-bottom: 2px;
+      }
+      .event.small:hover .event-note {
+        display: block;
+      }
+
+      .event.dragging {
+        transform: scale(1);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+        opacity: 0.7 !important;
+        filter: brightness(1.1);
+        z-index: 30;
+      }
+
+      .event-title {
+        font-weight: 600;
+        margin-bottom: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 13px;
+      }
+
+      .event-time {
+        font-size: 10px;
+        font-weight: 500;
+        opacity: 0.9;
+        margin-bottom: 2px;
+      }
+
+      .event-note {
+        font-size: 11px;
+        opacity: 0.9;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .event-resizer {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        cursor: ns-resize;
+        z-index: 10;
+      }
+      .event-resizer:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      .repeat-days {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+      }
+      .repeat-days label {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-color);
+        padding: 6px 10px;
+        border-radius: var(--radius);
+        cursor: pointer;
+        margin-bottom: 0;
+        font-weight: 500;
+        font-size: 12px;
+        color: var(--text-main);
+      }
+      .repeat-days label:has(input:checked) {
+        border-color: var(--btn-primary);
+        background: rgba(10, 132, 255, 0.1);
+      }
+      .repeat-days input {
+        margin: 0;
+        cursor: pointer;
+      }
+
+      #current-time-line {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: #ff453a;
+        pointer-events: none;
+        z-index: 30;
+      }
+
+      #current-time-line::before {
+        content: "";
+        position: absolute;
+        left: -5px;
+        top: -4px;
+        width: 10px;
+        height: 10px;
+        background-color: #ff453a;
+        border-radius: 50%;
+        box-shadow: 0 0 4px rgba(255, 69, 58, 0.5);
+      }
+
+      /* Modal */
+      #modal, #delete-confirm-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      #delete-confirm-modal {
+        z-index: 110;
+      }
+
+      .modal-content {
+        background: var(--bg-modal);
+        padding: 28px;
+        border-radius: 12px;
+        width: 360px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        border: 1px solid var(--border-color);
+        color: var(--text-main);
+      }
+
+      .modal-content h3 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        font-weight: 600;
+        font-size: 18px;
+      }
+
+      .modal-content label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 13px;
+        color: var(--text-muted);
+        font-weight: 500;
+      }
+
+      .modal-content input[type="text"],
+      .modal-content textarea,
+      .modal-content input[type="time"] {
+        width: 100%;
+        margin-bottom: 16px;
+        padding: 10px 12px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-input);
+        color: var(--text-main);
+        border-radius: var(--radius);
+        font-family: inherit;
+        font-size: 14px;
+        outline: none;
+        transition: border 0.2s;
+      }
+
+      .modal-content input:focus,
+      .modal-content textarea:focus {
+        border-color: var(--btn-primary);
+      }
+
+      .modal-content input[type="color"] {
+        width: 60px;
+        height: 32px;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        margin-bottom: 24px;
+        border-radius: var(--radius);
+        background: var(--bg-input);
+        padding: 2px;
+      }
+
+      .modal-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
+      .modal-buttons button {
+        padding: 10px 18px;
+        border: none;
+        border-radius: var(--radius);
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        font-family: inherit;
+        transition: background 0.2s;
+      }
+
+      .btn-cancel {
+        background: var(--btn-bg);
+        color: var(--text-main);
+      }
+
+      .btn-cancel:hover {
+        background: var(--btn-hover);
+      }
+
+      .btn-save {
+        background: var(--btn-primary);
+        color: white;
+      }
+
+      .btn-save:hover {
+        background: #007aff;
+      }
+
+      .btn-delete {
+        background: rgba(255, 69, 58, 0.1);
+        color: var(--btn-danger);
+        margin-right: auto;
+        border: 1px solid rgba(255, 69, 58, 0.3) !important;
+      }
+
+      .btn-delete:hover {
+        background: rgba(255, 69, 58, 0.2);
+      }
+
+      .drag-ghost {
+        position: absolute;
+        left: 4px;
+        right: 4px;
+        background: rgba(10, 132, 255, 0.30);
+        border: 1.5px dashed var(--btn-primary);
+        pointer-events: none;
+        z-index: 50;
+        border-radius: var(--radius);
+      }
+
+      input[type="date"] {
+        background: var(--bg-input);
+        color: var(--text-main);
+        border: 1px solid var(--border-color);
+        padding: 6px 12px;
+        border-radius: var(--radius);
+        cursor: pointer;
+        color-scheme: dark;
+        font-family: inherit;
+        font-size: 14px;
+        outline: none;
+        transition: border 0.2s;
+      }
+
+      input[type="date"]:focus {
+        border-color: var(--btn-primary);
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="header">
+      <button onclick="changeWeek(-1)">&#8592; Previous</button>
+      <div style="display: flex; align-items: center; gap: 16px">
+        <h2 id="week-label">Week</h2>
+        <input type="date" id="date-picker" onchange="jumpToDate(this.value)" />
+      </div>
+      <button onclick="changeWeek(1)">Next &#8594;</button>
+    </div>
+
+    <div
+      style="
+        display: flex;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--bg-header);
+      "
+    >
+      <div
+        style="width: 65px; flex-shrink: 0; background: var(--bg-header)"
+      ></div>
+      <div class="days-container" id="day-headers"></div>
+    </div>
+
+    <div class="calendar-container" id="scroll-area">
+      <div class="scroll-inner">
+        <div class="time-col" id="time-labels"></div>
+        <div class="days-container" id="days-bg"></div>
+      </div>
+    </div>
+
+    <div id="modal">
+      <div class="modal-content">
+        <h3 id="modal-title">Event Details</h3>
+        <label>Title</label>
+        <input
+          type="text"
+          id="ev-title"
+          placeholder="What are you working on?"
+        />
+        <label>Notes</label>
+        <textarea
+          id="ev-note"
+          placeholder="Add some details..."
+          rows="3"
+        ></textarea>
+
+        <div style="display: flex; gap: 12px">
+          <div style="flex: 1">
+            <label>Start Time</label>
+            <input type="text" id="ev-start" placeholder="HH:MM" maxlength="5" oninput="formatTimeInput(this)" onblur="validateTimeInput(this)" />
+          </div>
+          <div style="flex: 1">
+            <label>End Time</label>
+            <input type="text" id="ev-end" placeholder="HH:MM" maxlength="5" oninput="formatTimeInput(this)" onblur="validateTimeInput(this)" />
+          </div>
+        </div>
+
+        <label>Repeat Weekly</label>
+        <div class="repeat-days" id="ev-repeat">
+           <label><input type="checkbox" value="1"> Mon</label>
+           <label><input type="checkbox" value="2"> Tue</label>
+           <label><input type="checkbox" value="3"> Wed</label>
+           <label><input type="checkbox" value="4"> Thu</label>
+           <label><input type="checkbox" value="5"> Fri</label>
+           <label><input type="checkbox" value="6"> Sat</label>
+           <label><input type="checkbox" value="0"> Sun</label>
+        </div>
+
+        <label>Event Color</label>
+        <input type="color" id="ev-color" value="#0a84ff" />
+
+        <div class="modal-buttons">
+          <button id="btn-delete" class="btn-delete">Delete</button>
+          <button onclick="closeModal()" class="btn-cancel">Cancel</button>
+          <button onclick="saveModal()" class="btn-save">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="delete-confirm-modal">
+      <div class="modal-content" style="width: 320px; text-align: center;">
+        <h3>Delete Recurring Task</h3>
+        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">This is a repeating task. Which occurrences do you want to delete?</p>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <button onclick="confirmDeleteMode(1)" style="padding: 10px; border-radius: var(--radius); border: 1px solid var(--border-color); background: transparent; color: var(--text-main); cursor: pointer;">This event only</button>
+          <button onclick="confirmDeleteMode(2)" style="padding: 10px; border-radius: var(--radius); border: 1px solid var(--border-color); background: transparent; color: var(--text-main); cursor: pointer;">This and following events</button>
+          <button onclick="confirmDeleteMode(3)" style="padding: 10px; border-radius: var(--radius); border: 1px solid rgba(255, 69, 58, 0.3); background: rgba(255, 69, 58, 0.1); color: var(--btn-danger); cursor: pointer;">All events</button>
+          <button onclick="closeDeleteConfirm()" style="padding: 10px; margin-top: 8px; background: transparent; border: none; color: var(--text-muted); cursor: pointer;">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function getTextColorForBackground(hexcolor) {
+        if (!hexcolor || !hexcolor.startsWith('#')) return 'white';
+        let r = parseInt(hexcolor.substr(1, 2), 16);
+        let g = parseInt(hexcolor.substr(3, 2), 16);
+        let b = parseInt(hexcolor.substr(5, 2), 16);
+        let yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+        return (yiq >= 128) ? '#1c1c1e' : 'white';
+      }
+
+      function formatTimeInput(el) {
+        let v = el.value.replace(/[^0-9]/g, '');
+        if (v.length >= 3) {
+          v = v.substring(0, 2) + ':' + v.substring(2, 4);
+        }
+        el.value = v;
+      }
+      function validateTimeInput(el) {
+        let v = el.value;
+        if (/^[0-9]{1,2}:[0-9]{2}$/.test(v)) {
+          let parts = v.split(':');
+          let h = parseInt(parts[0]);
+          let m = parseInt(parts[1]);
+          if (h > 23) h = 23;
+          if (m > 59) m = 59;
+          el.value = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+        } else if (/^[0-9]{1,2}$/.test(v)) {
+          let h = parseInt(v);
+          if (h > 23) h = 23;
+          el.value = String(h).padStart(2, '0') + ':00';
+        } else {
+          el.value = "00:00";
+        }
+      }
+
+      const PIXELS_PER_HOUR = 60;
+      let currentDate = new Date();
+      let events = [];
+      let currentEventId = null;
+      let hoveredEventId = null;
+      let hoveredEventDate = null;
+
+      document.addEventListener("keydown", (e) => {
+        const modal = document.getElementById("modal");
+        if (modal.style.display === "flex") {
+          if (e.key === "Enter" && document.activeElement.tagName.toLowerCase() !== "textarea") {
+            e.preventDefault();
+            saveModal();
+          }
+        } else {
+          if ((e.key === "Delete" || e.key === "Backspace") && hoveredEventId) {
+            const ev = events.find((ev) => ev.id === hoveredEventId);
+            if (ev && ev.repeatDays && ev.repeatDays.length > 0) {
+              openDeleteConfirm(ev.id, hoveredEventDate);
+            } else {
+              events = events.filter((ev) => ev.id !== hoveredEventId);
+              saveEvents();
+            }
+            hoveredEventId = null;
+            hoveredEventDate = null;
+          }
+        }
+      });
+
+      function sendToPython(action, data) {
+        if (
+          window.webkit &&
+          window.webkit.messageHandlers &&
+          window.webkit.messageHandlers.calendar_action
+        ) {
+          window.webkit.messageHandlers.calendar_action.postMessage(
+            JSON.stringify({ action: action, data: data }),
+          );
+        }
+      }
+
+      function loadData(eventsJson) {
+        if (eventsJson) {
+          try {
+            events = JSON.parse(eventsJson);
+          } catch (e) {
+            events = [];
+          }
+        }
+        renderCalendar();
+        setTimeout(() => {
+          const scrollArea = document.getElementById("scroll-area");
+          if (scrollArea.scrollTop === 0)
+            scrollArea.scrollTop = 8 * PIXELS_PER_HOUR - 100;
+        }, 50);
+      }
+
+      function getStartOfWeek(d) {
+        const date = new Date(d);
+        const day = date.getDay() || 7;
+        if (day !== 1) date.setHours(-24 * (day - 1));
+        date.setHours(0, 0, 0, 0);
+        return date;
+      }
+
+      function changeWeek(offset) {
+        currentDate.setDate(currentDate.getDate() + offset * 7);
+        renderCalendar();
+      }
+
+      function formatDateYMD(d) {
+        return (
+          d.getFullYear() +
+          "-" +
+          String(d.getMonth() + 1).padStart(2, "0") +
+          "-" +
+          String(d.getDate()).padStart(2, "0")
+        );
+      }
+
+      function jumpToDate(dateStr) {
+        if (!dateStr) return;
+        currentDate = new Date(dateStr);
+        renderCalendar();
+      }
+
+      function updateCurrentTimeLine() {
+        let line = document.getElementById("current-time-line");
+        if (line) line.remove();
+
+        const now = new Date();
+        const startOfWeek = getStartOfWeek(currentDate);
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(endOfWeek.getDate() + 7);
+
+        if (now >= startOfWeek && now < endOfWeek) {
+          const todayStr = formatDateYMD(now);
+          const col = document.querySelector(
+            `.day-col[data-date="${todayStr}"]`,
+          );
+          if (col) {
+            line = document.createElement("div");
+            line.id = "current-time-line";
+            const h = now.getHours();
+            const m = now.getMinutes();
+            const top = (h + m / 60) * PIXELS_PER_HOUR;
+            line.style.top = top + "px";
+            col.appendChild(line);
+          }
+        }
+      }
+
+      let isDragging = false;
+      let startY = 0;
+      let dragGhost = null;
+      let activeCol = null;
+      let activeDateStr = null;
+
+      let isResizing = false;
+      let resizingEvent = null;
+      let resizingStartY = 0;
+      let resizingInitialEnd = null;
+
+      document.addEventListener("mousemove", (e) => {
+        if (isResizing && resizingEvent) {
+          const deltaY = e.clientY - resizingStartY;
+          const deltaMs = (deltaY / PIXELS_PER_HOUR) * 60 * 60 * 1000;
+          
+          let deltaMins = Math.round(deltaMs / (1000 * 60));
+          deltaMins = Math.round(deltaMins / 15) * 15;
+          
+          let snappedEnd = new Date(resizingInitialEnd.getTime() + deltaMins * 60 * 1000);
+          let start = new Date(resizingEvent.start);
+          if (snappedEnd.getTime() - start.getTime() < 15 * 60 * 1000) {
+              snappedEnd = new Date(start.getTime() + 15 * 60 * 1000);
+          }
+          
+          const newEndStr = formatDateYMD(snappedEnd) + "T" + String(snappedEnd.getHours()).padStart(2, '0') + ":" + String(snappedEnd.getMinutes()).padStart(2, '0') + ":00";
+          
+          if (resizingEvent.end !== newEndStr) {
+              resizingEvent.end = newEndStr;
+              renderCalendar();
+          }
+          return;
+        }
+
+        if (!isDragging || !dragGhost || !activeCol) return;
+        const rect = activeCol.getBoundingClientRect();
+        let currentY = e.clientY - rect.top;
+        const step = PIXELS_PER_HOUR / 4;
+        currentY = Math.round(currentY / step) * step;
+        currentY = Math.max(0, Math.min(currentY, 24 * PIXELS_PER_HOUR));
+
+        const top = Math.min(startY, currentY);
+        const height = Math.abs(currentY - startY);
+        dragGhost.style.top = top + "px";
+        dragGhost.style.height = height + "px";
+      });
+
+      document.addEventListener("mouseup", (e) => {
+        if (isResizing) {
+          isResizing = false;
+          resizingEvent = null;
+          document.body.style.cursor = '';
+          saveEvents();
+          return;
+        }
+
+        if (!isDragging) return;
+        isDragging = false;
+        if (dragGhost) {
+          const top = parseFloat(dragGhost.style.top);
+          const height = parseFloat(dragGhost.style.height);
+          dragGhost.remove();
+          dragGhost = null;
+
+          if (height > 10) openModalForNew(activeDateStr, top, height);
+        }
+        activeCol = null;
+      });
+
+      function renderCalendar() {
+        const startOfWeek = getStartOfWeek(currentDate);
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(endOfWeek.getDate() + 6);
+
+        const monthNames = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
+        document.getElementById("week-label").innerText =
+          `${monthNames[startOfWeek.getMonth()]} ${startOfWeek.getDate()} - ${monthNames[endOfWeek.getMonth()]} ${endOfWeek.getDate()}, ${startOfWeek.getFullYear()}`;
+        document.getElementById("date-picker").value =
+          formatDateYMD(currentDate);
+
+        const timeLabels = document.getElementById("time-labels");
+        timeLabels.innerHTML = "";
+        for (let i = 0; i < 24; i++) {
+          const div = document.createElement("div");
+          div.className = "time-slot";
+          if (i > 0) div.innerText = i + ":00";
+          timeLabels.appendChild(div);
+        }
+
+        const headers = document.getElementById("day-headers");
+        const daysBg = document.getElementById("days-bg");
+        headers.innerHTML = "";
+        daysBg.innerHTML = "";
+
+        const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        const todayStr = formatDateYMD(new Date());
+
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(startOfWeek);
+          d.setDate(d.getDate() + i);
+          const dateStr = formatDateYMD(d);
+
+          const hDiv = document.createElement("div");
+          hDiv.className =
+            "day-col day-header" + (dateStr === todayStr ? " today" : "");
+          hDiv.innerText =
+            days[i] + " " + d.getDate() + "/" + (d.getMonth() + 1);
+          headers.appendChild(hDiv);
+
+          const col = document.createElement("div");
+          col.className = "day-col";
+          col.dataset.date = dateStr;
+
+          const gridLines = document.createElement("div");
+          gridLines.className = "grid-lines";
+          for (let h = 0; h < 24; h++) {
+            const line = document.createElement("div");
+            line.className = "grid-line";
+            gridLines.appendChild(line);
+          }
+          col.appendChild(gridLines);
+
+          col.addEventListener("mousedown", (e) => {
+            if (e.target.closest(".event")) return;
+            if (e.button !== 0) return;
+            e.preventDefault();
+            isDragging = true;
+            activeCol = col;
+            activeDateStr = dateStr;
+            const rect = col.getBoundingClientRect();
+            startY = e.clientY - rect.top;
+            const step = PIXELS_PER_HOUR / 4;
+            startY = Math.round(startY / step) * step;
+
+            dragGhost = document.createElement("div");
+            dragGhost.className = "drag-ghost";
+            dragGhost.style.top = startY + "px";
+            dragGhost.style.height = "0px";
+            col.appendChild(dragGhost);
+          });
+
+          col.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+
+            if (window.currentDraggingEventId) {
+              const ev = events.find(
+                (x) => x.id === window.currentDraggingEventId,
+              );
+              if (ev) {
+                const durationMs =
+                  new Date(ev.end).getTime() - new Date(ev.start).getTime();
+                const height =
+                  (durationMs / (1000 * 60 * 60)) * PIXELS_PER_HOUR;
+
+                const offsetY = window.currentDraggingOffsetY || 0;
+                const rect = col.getBoundingClientRect();
+                let newY = e.clientY - rect.top - offsetY;
+                newY = Math.max(0, Math.min(newY, 24 * PIXELS_PER_HOUR));
+
+                let startH = Math.floor(newY / PIXELS_PER_HOUR);
+                let startM = Math.floor(
+                  ((newY % PIXELS_PER_HOUR) / PIXELS_PER_HOUR) * 60,
+                );
+                startM = Math.round(startM / 15) * 15;
+                if (startM === 60) {
+                  startH++;
+                  startM = 0;
+                }
+                if (startH >= 24) {
+                  startH = 23;
+                  startM = 45;
+                }
+
+                const snappedTop = (startH + startM / 60) * PIXELS_PER_HOUR;
+
+                if (!window.dropPlaceholder) {
+                  window.dropPlaceholder = document.createElement("div");
+                  window.dropPlaceholder.className = "drag-ghost";
+                  window.dropPlaceholder.innerHTML = '<div class="drag-ghost-title" style="padding: 6px 8px; color: white; font-weight: 600; font-size: 13px; text-shadow: 0 1px 2px rgba(0,0,0,0.8);"></div>';
+                }
+
+                if (window.dropPlaceholder.parentElement !== col) {
+                  col.appendChild(window.dropPlaceholder);
+                }
+                
+                const titleEl = window.dropPlaceholder.querySelector('.drag-ghost-title');
+                if (titleEl) {
+                  const sH = String(startH).padStart(2, '0');
+                  const sM = String(startM).padStart(2, '0');
+                  titleEl.innerHTML = `${sH}:${sM} - ${escapeHtml(ev.title || 'Task')}`;
+                }
+
+                window.dropPlaceholder.style.top = snappedTop + "px";
+                let ghostHeight = height;
+                if (snappedTop + ghostHeight > 24 * PIXELS_PER_HOUR) {
+                    ghostHeight = 24 * PIXELS_PER_HOUR - snappedTop;
+                }
+                window.dropPlaceholder.style.height = ghostHeight + "px";
+                window.dropPlaceholder.style.display = "block";
+              }
+            }
+          });
+          col.addEventListener("drop", (e) => {
+            e.preventDefault();
+            if (window.dropPlaceholder)
+              window.dropPlaceholder.style.display = "none";
+            const evId = e.dataTransfer.getData("text/plain");
+            if (!evId) return;
+            const offsetY = parseFloat(e.dataTransfer.getData("offsetY") || 0);
+
+            const eventIndex = events.findIndex((x) => x.id === evId);
+            if (eventIndex >= 0) {
+              const ev = events[eventIndex];
+              const durationMs =
+                new Date(ev.end).getTime() - new Date(ev.start).getTime();
+
+              const rect = col.getBoundingClientRect();
+              let newY = e.clientY - rect.top - offsetY;
+              newY = Math.max(0, Math.min(newY, 24 * PIXELS_PER_HOUR));
+
+              let startH = Math.floor(newY / PIXELS_PER_HOUR);
+              let startM = Math.floor(
+                ((newY % PIXELS_PER_HOUR) / PIXELS_PER_HOUR) * 60,
+              );
+              startM = Math.round(startM / 15) * 15;
+              if (startM === 60) {
+                startH++;
+                startM = 0;
+              }
+              if (startH >= 24) {
+                startH = 23;
+                startM = 45;
+              }
+
+              const newStartStr =
+                dateStr +
+                "T" +
+                String(startH).padStart(2, "0") +
+                ":" +
+                String(startM).padStart(2, "0") +
+                ":00";
+              const newStart = new Date(newStartStr);
+              const newEnd = new Date(newStart.getTime() + durationMs);
+
+              ev.start =
+                formatDateYMD(newStart) +
+                "T" +
+                String(newStart.getHours()).padStart(2, "0") +
+                ":" +
+                String(newStart.getMinutes()).padStart(2, "0") +
+                ":00";
+              ev.end =
+                formatDateYMD(newEnd) +
+                "T" +
+                String(newEnd.getHours()).padStart(2, "0") +
+                ":" +
+                String(newEnd.getMinutes()).padStart(2, "0") +
+                ":00";
+
+              saveEvents();
+            }
+          });
+
+          daysBg.appendChild(col);
+        }
+
+        const dateToEvents = {};
+        
+        const weekEvents = [];
+        const startOfWeekTime = startOfWeek.getTime();
+        
+        events.forEach((ev) => {
+           if (ev.repeatDays && ev.repeatDays.length > 0) {
+              const anchorDate = new Date(ev.start);
+              anchorDate.setHours(0,0,0,0);
+              
+              for (let i = 0; i < 7; i++) {
+                 const d = new Date(startOfWeek);
+                 d.setDate(d.getDate() + i);
+                 const currentDStr = formatDateYMD(d);
+                 if (ev.repeatDays.includes(d.getDay()) && d.getTime() >= anchorDate.getTime() && !(ev.exceptionDates && ev.exceptionDates.includes(currentDStr)) && (!ev.untilDate || currentDStr < ev.untilDate)) {
+                    const origStart = new Date(ev.start);
+                    const origEnd = new Date(ev.end);
+                    const durationMs = origEnd.getTime() - origStart.getTime();
+                    
+                    const newStart = new Date(d);
+                    newStart.setHours(origStart.getHours(), origStart.getMinutes(), 0, 0);
+                    const newEnd = new Date(newStart.getTime() + durationMs);
+                    
+                    weekEvents.push({
+                       originalEvent: ev,
+                       virtualStart: formatDateYMD(newStart) + "T" + String(newStart.getHours()).padStart(2, '0') + ":" + String(newStart.getMinutes()).padStart(2, '0') + ":00",
+                       virtualEnd: formatDateYMD(newEnd) + "T" + String(newEnd.getHours()).padStart(2, '0') + ":" + String(newEnd.getMinutes()).padStart(2, '0') + ":00",
+                    });
+                 }
+              }
+           } else {
+              weekEvents.push({
+                 originalEvent: ev,
+                 virtualStart: ev.start,
+                 virtualEnd: ev.end
+              });
+           }
+        });
+
+        weekEvents.forEach((wev) => {
+          const startDate = new Date(wev.virtualStart);
+          const endDate = new Date(wev.virtualEnd);
+          const ev = wev.originalEvent;
+          
+          let currStart = new Date(startDate);
+          while (currStart < endDate) {
+            let nextDay = new Date(currStart);
+            nextDay.setHours(24, 0, 0, 0);
+            
+            let currEnd = (endDate < nextDay) ? endDate : nextDay;
+            
+            const dateStr = formatDateYMD(currStart);
+            if (!dateToEvents[dateStr]) dateToEvents[dateStr] = [];
+            
+            const startHour = currStart.getHours();
+            const startMin = currStart.getMinutes();
+            let endHour = currEnd.getHours();
+            let endMin = currEnd.getMinutes();
+            
+            const top = (startHour + startMin / 60) * PIXELS_PER_HOUR;
+            let bottom = (currEnd.getTime() === nextDay.getTime()) ? 24 * PIXELS_PER_HOUR : (endHour + endMin / 60) * PIXELS_PER_HOUR;
+            if (bottom - top < 20) bottom = top + 20;
+
+            if (currEnd.getTime() === nextDay.getTime()) {
+                endHour = 24;
+                endMin = 0;
+            }
+            
+            dateToEvents[dateStr].push({
+              ev,
+              dateStr,
+              top,
+              bottom,
+              startHour,
+              startMin,
+              endHour,
+              endMin,
+              isStart: currStart.getTime() === startDate.getTime(),
+              isEnd: currEnd.getTime() === endDate.getTime()
+            });
+            
+            currStart = nextDay;
+          }
+        });
+
+        for (const dateStr in dateToEvents) {
+          const col = document.querySelector(
+            `.day-col[data-date="${dateStr}"]`,
+          );
+          if (!col) continue;
+
+          const dayEvents = dateToEvents[dateStr].sort((a, b) => a.top - b.top);
+          let columns = [];
+          let lastEventEnding = null;
+
+          function packEvents(columnsToPack) {
+            const numColumns = columnsToPack.length;
+            columnsToPack.forEach((colArray, i) => {
+              colArray.forEach((item) => {
+                item.left = (i / numColumns) * 100;
+                item.width = (1 / numColumns) * 100;
+              });
+            });
+          }
+
+          dayEvents.forEach((item) => {
+            if (lastEventEnding !== null && item.top >= lastEventEnding) {
+              packEvents(columns);
+              columns = [];
+              lastEventEnding = null;
+            }
+
+            let placed = false;
+            for (let i = 0; i < columns.length; i++) {
+              if (columns[i][columns[i].length - 1].bottom <= item.top) {
+                columns[i].push(item);
+                placed = true;
+                break;
+              }
+            }
+            if (!placed) columns.push([item]);
+
+            if (lastEventEnding === null || item.bottom > lastEventEnding) {
+              lastEventEnding = item.bottom;
+            }
+          });
+          if (columns.length > 0) packEvents(columns);
+
+          dayEvents.forEach((item) => {
+            const evDiv = document.createElement("div");
+            evDiv.className = "event";
+            evDiv.style.top = item.top + "px";
+            evDiv.style.height = item.bottom - item.top + "px";
+            evDiv.style.left = `calc(${item.left}% + 4px)`;
+            evDiv.style.width = `calc(${item.width}% - 8px)`;
+            evDiv.style.right = "auto";
+            
+            const bgColor = item.ev.color || "#0a84ff";
+            evDiv.style.backgroundColor = bgColor;
+            const textColor = getTextColorForBackground(bgColor);
+            evDiv.style.color = textColor;
+            evDiv.style.borderLeft = textColor === 'white' ? "4px solid rgba(255, 255, 255, 0.4)" : "4px solid rgba(0, 0, 0, 0.2)";
+
+            evDiv.setAttribute("draggable", "true");
+
+            const timeStr = `${String(item.startHour).padStart(2, "0")}:${String(item.startMin).padStart(2, "0")} - ${String(item.endHour).padStart(2, "0")}:${String(item.endMin).padStart(2, "0")}`;
+
+            let resizerHtml = "";
+            if (item.isEnd) {
+                resizerHtml = `<div class="event-resizer"></div>`;
+            }
+            
+            if (item.bottom - item.top <= 30) {
+                evDiv.classList.add("small");
+            }
+
+            evDiv.innerHTML = `
+                    <div class="event-title">${escapeHtml(item.ev.title)}</div>
+                    <div class="event-time">${timeStr}</div>
+                    ${item.ev.note ? `<div class="event-note">${escapeHtml(item.ev.note)}</div>` : ""}
+                    ${resizerHtml}
+                `;
+
+            const resizerEl = evDiv.querySelector('.event-resizer');
+            if (resizerEl) {
+              resizerEl.addEventListener("mousedown", (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                isResizing = true;
+                resizingEvent = item.ev;
+                resizingStartY = e.clientY;
+                resizingInitialEnd = new Date(item.ev.end);
+                document.body.style.cursor = 'ns-resize';
+              });
+            }
+
+            evDiv.addEventListener("mouseenter", () => {
+              hoveredEventId = item.ev.id;
+              hoveredEventDate = item.dateStr;
+            });
+            evDiv.addEventListener("mouseleave", () => {
+              if (hoveredEventId === item.ev.id && hoveredEventDate === item.dateStr) {
+                  hoveredEventId = null;
+                  hoveredEventDate = null;
+              }
+            });
+            evDiv.addEventListener("mousedown", (e) => e.stopPropagation());
+            evDiv.addEventListener("click", (e) => {
+              e.stopPropagation();
+              openModalForEdit(item.ev, item.dateStr);
+            });
+            evDiv.addEventListener("dragstart", (e) => {
+              window.currentDraggingEventId = item.ev.id;
+              const rect = evDiv.getBoundingClientRect();
+              window.currentDraggingOffsetY = e.clientY - rect.top;
+
+              e.dataTransfer.setData("text/plain", item.ev.id);
+              e.dataTransfer.setData("offsetY", window.currentDraggingOffsetY);
+              
+              let ghostEl = document.getElementById('drag-ghost-hider');
+              if (!ghostEl) {
+                  ghostEl = document.createElement('div');
+                  ghostEl.id = 'drag-ghost-hider';
+                  ghostEl.style.width = '1px';
+                  ghostEl.style.height = '1px';
+                  ghostEl.style.position = 'absolute';
+                  ghostEl.style.top = '-1000px';
+                  document.body.appendChild(ghostEl);
+              }
+              e.dataTransfer.setDragImage(ghostEl, 0, 0);
+
+              setTimeout(() => evDiv.classList.add("dragging"), 0);
+            });
+            evDiv.addEventListener("dragend", (e) => {
+              evDiv.classList.remove("dragging");
+              window.currentDraggingEventId = null;
+              if (window.dropPlaceholder)
+                window.dropPlaceholder.style.display = "none";
+            });
+
+            col.appendChild(evDiv);
+          });
+        }
+
+        updateCurrentTimeLine();
+      }
+
+      function escapeHtml(unsafe) {
+        return (unsafe || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function openModalForNew(dateStr, top, height) {
+        currentEventId = null;
+        document.getElementById("modal-title").innerText = "New Task";
+        document.getElementById("ev-title").value = "";
+        document.getElementById("ev-note").value = "";
+
+        let startH = Math.floor(top / PIXELS_PER_HOUR);
+        let startM = Math.floor(
+          ((top % PIXELS_PER_HOUR) / PIXELS_PER_HOUR) * 60,
+        );
+        startM = Math.round(startM / 15) * 15;
+        if (startM === 60) {
+          startH++;
+          startM = 0;
+        }
+
+        let endH = Math.floor((top + height) / PIXELS_PER_HOUR);
+        let endM = Math.floor(
+          (((top + height) % PIXELS_PER_HOUR) / PIXELS_PER_HOUR) * 60,
+        );
+        endM = Math.round(endM / 15) * 15;
+        if (endM === 60) {
+          endH++;
+          endM = 0;
+        }
+
+        if (startH === endH && startM === endM) {
+          endM += 30;
+          if (endM >= 60) {
+            endH++;
+            endM -= 60;
+          }
+        }
+
+        if (endH >= 24) {
+          endH = 23;
+          endM = 59;
+        }
+        if (startH >= 24) {
+          startH = 23;
+          startM = 45;
+        }
+
+        document.getElementById("ev-start").dataset.date = dateStr;
+        document.getElementById("ev-start").value =
+          String(startH).padStart(2, "0") +
+          ":" +
+          String(startM).padStart(2, "0");
+        document.getElementById("ev-end").value =
+          String(endH).padStart(2, "0") + ":" + String(endM).padStart(2, "0");
+
+        const checkboxes = document.querySelectorAll('#ev-repeat input[type="checkbox"]');
+        checkboxes.forEach(cb => cb.checked = false);
+
+        document.getElementById("btn-delete").style.display = "none";
+        document.getElementById("modal").style.display = "flex";
+        setTimeout(() => document.getElementById("ev-title").focus(), 100);
+      }
+
+      function openModalForEdit(ev, dateStr) {
+        currentEventId = ev.id;
+        document.getElementById("modal-title").innerText = "Edit Task";
+        document.getElementById("ev-title").value = ev.title;
+        document.getElementById("ev-note").value = ev.note || "";
+        document.getElementById("ev-color").value = ev.color || "#0a84ff";
+
+        document.getElementById("ev-start").dataset.date = ev.start.substring(
+          0,
+          10,
+        );
+        document.getElementById("ev-start").value = ev.start.substring(11, 16);
+        document.getElementById("ev-end").value = ev.end.substring(11, 16);
+
+        const repeatDays = ev.repeatDays || [];
+        const checkboxes = document.querySelectorAll('#ev-repeat input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            cb.checked = repeatDays.includes(parseInt(cb.value));
+        });
+
+        document.getElementById("btn-delete").style.display = "inline-block";
+        document.getElementById("btn-delete").onclick = () => {
+          if (ev.repeatDays && ev.repeatDays.length > 0) {
+            closeModal();
+            openDeleteConfirm(ev.id, dateStr);
+          } else {
+            events = events.filter((e) => e.id !== ev.id);
+            closeModal();
+            saveEvents();
+          }
+        };
+
+        document.getElementById("modal").style.display = "flex";
+        setTimeout(() => document.getElementById("ev-title").focus(), 100);
+      }
+
+      let pendingDeleteEventId = null;
+      let pendingDeleteEventDate = null;
+
+      function openDeleteConfirm(evId, dateStr) {
+        pendingDeleteEventId = evId;
+        pendingDeleteEventDate = dateStr;
+        document.getElementById("delete-confirm-modal").style.display = "flex";
+      }
+
+      function closeDeleteConfirm() {
+        document.getElementById("delete-confirm-modal").style.display = "none";
+        pendingDeleteEventId = null;
+        pendingDeleteEventDate = null;
+      }
+
+      function confirmDeleteMode(mode) {
+        if (!pendingDeleteEventId) return;
+        const ev = events.find(e => e.id === pendingDeleteEventId);
+        if (ev) {
+          if (mode === 1) {
+            // This event only
+            if (!ev.exceptionDates) ev.exceptionDates = [];
+            if (pendingDeleteEventDate && !ev.exceptionDates.includes(pendingDeleteEventDate)) {
+              ev.exceptionDates.push(pendingDeleteEventDate);
+            }
+          } else if (mode === 2) {
+            // This and following events
+            // We set untilDate to the current date to stop repeating on or after this date
+            if (pendingDeleteEventDate) {
+              // Wait, if it's mode 2, untilDate should be the dateStr
+              // If untilDate is set, the recurring events on or after this date will be filtered out.
+              ev.untilDate = pendingDeleteEventDate;
+            }
+          } else if (mode === 3) {
+            // All events
+            events = events.filter((e) => e.id !== pendingDeleteEventId);
+          }
+        }
+        closeDeleteConfirm();
+        saveEvents();
+      }
+
+      function closeModal() {
+        document.getElementById("modal").style.display = "none";
+      }
+
+      function saveModal() {
+        const title = document.getElementById("ev-title").value || "Untitled";
+        const note = document.getElementById("ev-note").value;
+        const color = document.getElementById("ev-color").value;
+
+        const dateStr = document.getElementById("ev-start").dataset.date;
+        const startTime = document.getElementById("ev-start").value;
+        const endTime = document.getElementById("ev-end").value;
+
+        const checkboxes = document.querySelectorAll('#ev-repeat input[type="checkbox"]:checked');
+        const repeatDays = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+        let startDate = new Date(dateStr + "T" + startTime + ":00");
+        let endDate = new Date(dateStr + "T" + endTime + ":00");
+
+        if (endDate <= startDate) {
+           if (startTime === endTime) {
+               endDate = new Date(startDate.getTime() + 30 * 60000);
+           } else {
+               endDate.setDate(endDate.getDate() + 1);
+           }
+        }
+
+        const newEv = {
+          id: currentEventId || Date.now().toString(),
+          title: title,
+          note: note,
+          color: color,
+          start: formatDateYMD(startDate) + "T" + String(startDate.getHours()).padStart(2, '0') + ":" + String(startDate.getMinutes()).padStart(2, '0') + ":00",
+          end: formatDateYMD(endDate) + "T" + String(endDate.getHours()).padStart(2, '0') + ":" + String(endDate.getMinutes()).padStart(2, '0') + ":00",
+          repeatDays: repeatDays
+        };
+
+        if (currentEventId) {
+          const idx = events.findIndex((e) => e.id === currentEventId);
+          if (idx >= 0) events[idx] = newEv;
+        } else {
+          events.push(newEv);
+        }
+
+        closeModal();
+        saveEvents();
+      }
+
+      function saveEvents() {
+        renderCalendar();
+        sendToPython("save_events", events);
+      }
+
+      setInterval(updateCurrentTimeLine, 60000);
+    </script>
+  </body>
+</html>
