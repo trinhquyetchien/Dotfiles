@@ -569,6 +569,7 @@ mkdir -p "$HOME/.local/bin"
 mkdir -p "$HOME/.config/autostart"
 mkdir -p "$HOME/.config/systemd/user"
 mkdir -p "$HOME/.config/mpv"
+mkdir -p "$HOME/.local/share/gnome-shell/extensions"
 mkdir -p "$HOME/Note/Daily"
 mkdir -p "$BACKUP_DIR"
 
@@ -604,9 +605,30 @@ done
 # 3. Cấp quyền thực thi cho các script trong Dotfiles
 chmod +x "$DOTFILES_DIR"/desktop/.local/bin/* 2>/dev/null || true
 
-# 4. Thực thi GNU Stow
+# 4. Sao lưu extension cũ nếu có xung đột và chuẩn bị liên kết
+if [ -d "$DOTFILES_DIR/gnome-extensions/.local/share/gnome-shell/extensions" ]; then
+    for ext_path in "$DOTFILES_DIR/gnome-extensions/.local/share/gnome-shell/extensions"/*; do
+        ext_name="$(basename "$ext_path")"
+        ext_dest="$HOME/.local/share/gnome-shell/extensions/$ext_name"
+        if [ -e "$ext_dest" ] || [ -L "$ext_dest" ]; then
+            if [ -L "$ext_dest" ]; then
+                target_link="$(readlink -f "$ext_dest" 2>/dev/null || true)"
+                if [[ "$target_link" == "$DOTFILES_DIR"* ]]; then
+                    continue
+                fi
+                rm -rf "$ext_dest"
+            else
+                mkdir -p "$BACKUP_DIR/.local/share/gnome-shell/extensions"
+                mv "$ext_dest" "$BACKUP_DIR/.local/share/gnome-shell/extensions/"
+                warn "Đã sao lưu extension cũ: $ext_name -> $BACKUP_DIR"
+            fi
+        fi
+    done
+fi
+
+# 5. Thực thi GNU Stow
 cd "$DOTFILES_DIR"
-modules=(zsh tmux starship wezterm nvim libinput desktop systemd)
+modules=(zsh tmux starship wezterm nvim libinput desktop systemd gnome-extensions)
 
 for mod in "${modules[@]}"; do
     if [ -d "$mod" ]; then
@@ -615,7 +637,7 @@ for mod in "${modules[@]}"; do
     fi
 done
 
-# 5. Kích hoạt user service cho Syncthing
+# 6. Kích hoạt user service cho Syncthing
 if has_command "syncthing"; then
     info "Đang kích hoạt Syncthing user systemd service..."
     systemctl --user daemon-reload >/dev/null 2>&1 || true
@@ -623,7 +645,7 @@ if has_command "syncthing"; then
     systemctl --user start syncthing.service >/dev/null 2>&1 || true
 fi
 
-# 6. Pre-sync Neovim Plugins (Headless Lazy sync)
+# 7. Pre-sync Neovim Plugins (Headless Lazy sync)
 if has_command "nvim"; then
     info "Đang tự động tải các plugin Neovim bằng lazy.nvim (headless)..."
     nvim --headless "+Lazy! sync" +qa >/dev/null 2>&1 || true

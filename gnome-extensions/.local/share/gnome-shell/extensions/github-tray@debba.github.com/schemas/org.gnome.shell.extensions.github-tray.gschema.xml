@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.github-tray" path="/org/gnome/shell/extensions/github-tray/">
+    <key name="github-token" type="s">
+      <default>''</default>
+      <summary>GitHub Personal Access Token</summary>
+      <description>Token for GitHub API access</description>
+    </key>
+    <key name="github-enterprise-url" type="s">
+      <default>''</default>
+      <summary>GitHub Enterprise Server URL</summary>
+      <description>Base URL for GitHub Enterprise Server (e.g. https://github.mycompany.com). Leave empty for github.com.</description>
+    </key>
+    <key name="github-username" type="s">
+      <default>''</default>
+      <summary>GitHub Username</summary>
+      <description>Your GitHub username</description>
+    </key>
+    <key name="panel-box" type="s">
+      <default>'right'</default>
+      <summary>Panel position</summary>
+      <description>Icon position in the top bar: left, center, right</description>
+    </key>
+    <key name="max-repos" type="i">
+      <default>10</default>
+      <summary>Max repositories</summary>
+      <description>Maximum number of repositories to display in the list</description>
+    </key>
+    <key name="sort-by" type="s">
+      <default>'updated'</default>
+      <summary>Sort repositories by</summary>
+      <description>Sort criteria: updated, pushed, created, stars, name</description>
+    </key>
+    <key name="sort-order" type="s">
+      <default>'desc'</default>
+      <summary>Sort order</summary>
+      <description>Sort order: asc (ascending) or desc (descending)</description>
+    </key>
+    <key name="local-editor" type="s">
+      <default>'code'</default>
+      <summary>Local editor command</summary>
+      <description>Command to open local projects (e.g., code, gedit, gnome-text-editor)</description>
+    </key>
+    <key name="local-projects" type="s">
+      <default>'{}'</default>
+      <summary>Local project paths</summary>
+      <description>JSON mapping of repository names to local paths</description>
+    </key>
+    <key name="debug-mode" type="b">
+      <default>false</default>
+      <summary>Debug mode</summary>
+      <description>Enable debug mode to show debug button for testing notifications</description>
+    </key>
+    <key name="show-notifications" type="b">
+      <default>true</default>
+      <summary>Show GitHub notifications</summary>
+      <description>Display GitHub notifications in the menu</description>
+    </key>
+    <key name="notification-interval" type="i">
+      <default>60</default>
+      <summary>Notification refresh interval</summary>
+      <description>Interval in seconds to check for new notifications</description>
+    </key>
+    <key name="notify-review-requests" type="b">
+      <default>true</default>
+      <summary>Show review requests</summary>
+      <description>Show notifications for review requests</description>
+    </key>
+    <key name="notify-mentions" type="b">
+      <default>true</default>
+      <summary>Show mentions</summary>
+      <description>Show notifications for mentions</description>
+    </key>
+    <key name="notify-assignments" type="b">
+      <default>true</default>
+      <summary>Show assignments</summary>
+      <description>Show notifications for assignments</description>
+    </key>
+    <key name="notify-pr-comments" type="b">
+      <default>true</default>
+      <summary>Show PR comments</summary>
+      <description>Show notifications for pull request comments</description>
+    </key>
+    <key name="notify-issue-comments" type="b">
+      <default>true</default>
+      <summary>Show issue comments</summary>
+      <description>Show notifications for issue comments</description>
+    </key>
+    <key name="desktop-notifications" type="b">
+      <default>true</default>
+      <summary>Desktop notifications</summary>
+      <description>Show desktop notifications for new GitHub notifications</description>
+    </key>
+    <key name="font-size" type="s">
+      <default>'small'</default>
+      <summary>Font size</summary>
+      <description>UI font size: small, medium, or large</description>
+    </key>
+    <key name="workflow-runs-max-display" type="i">
+      <default>10</default>
+      <summary>Max workflow runs to display</summary>
+      <description>Maximum number of workflow runs shown per repository</description>
+    </key>
+    <key name="notify-workflow-started" type="b">
+      <default>true</default>
+      <summary>Notify on workflow start</summary>
+      <description>Show desktop notifications when a workflow starts (monitored repos only)</description>
+    </key>
+    <key name="notify-workflow-success" type="b">
+      <default>true</default>
+      <summary>Notify on workflow success</summary>
+      <description>Show desktop notifications when a workflow succeeds (monitored repos only)</description>
+    </key>
+    <key name="notify-workflow-failure" type="b">
+      <default>true</default>
+      <summary>Notify on workflow failure</summary>
+      <description>Show desktop notifications when a workflow fails (monitored repos only)</description>
+    </key>
+    <key name="notify-workflow-cancelled" type="b">
+      <default>true</default>
+      <summary>Notify on workflow cancellation</summary>
+      <description>Show desktop notifications when a workflow is cancelled (monitored repos only)</description>
+    </key>
+  </schema>
+</schemalist>

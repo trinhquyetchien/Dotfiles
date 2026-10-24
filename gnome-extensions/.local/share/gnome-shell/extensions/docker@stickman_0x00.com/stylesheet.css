@@ -1,0 +1,21 @@
+/* Add your custom extension styling here */
+.running {
+	color: green;
+}
+
+.stop {
+	color: red;
+}
+
+.compose {
+	color: cyan;
+}
+
+.docker-counter-label {
+    font-size: 0.8em;
+    padding: 0.4em 0 0 0;
+}
+
+.unhealthy {
+    color: red;
+}

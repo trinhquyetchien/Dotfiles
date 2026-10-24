@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="improved-workspace-indicator">
+  <enum id="org.gnome.shell.extensions.improved-workspace-indicator.position">
+    <value value="0" nick="left"/>
+    <value value="1" nick="right"/>
+    <value value="2" nick="center"/>
+  </enum>
+  <schema id="org.gnome.shell.extensions.improved-workspace-indicator" path="/org/gnome/shell/extensions/improved-workspace-indicator/">
+    <key name="panel-position" enum="org.gnome.shell.extensions.improved-workspace-indicator.position">
+      <default>'right'</default>
+      <summary>Choose the position of the workspace indicator.</summary>
+    </key>
+    <key name="skip-taskbar-mode" type="b">
+      <default>true</default>
+      <summary>Ignore Taskbar-Skipped Windows.</summary>
+      <description>
+        Set to true to ignore `is_skip_taskbar` windows when determining in-use workspaces. This includes hidden windows created by the desktop-icons-ng extension.
+      </description>
+    </key>
+    <key name="change-on-click" type="b">
+      <default>true</default>
+      <summary>Change Workspaces on indicator click.</summary>
+      <description>
+        Set to true to change to the workspace number on indicator click. Set to false to disable any action on click.
+      </description>
+    </key>
+    <key name="custom-css-path" type="s">
+      <default>""</default>
+      <summary>Path to custom CSS stylesheet.</summary>
+      <description>
+        Enter a path to your custom CSS stylehseet (must be full path eg. /home/user/...), or leave it empty to restore original style.
+      </description>
+    </key>
+    <key name="change-on-scroll" type="b">
+      <default>true</default>
+      <summary>Change workspaces on indicator mouse-scroll.</summary>
+      <description>
+        Set to true to change to the workspace number by mouse-scroll over indicator.
+      </description>
+    </key>
+    <key name="wrap-scroll" type="b">
+      <default>true</default>
+      <summary>Workspace wraparound with mouse-scroll.</summary>
+      <description>
+        Set to true to loop back at first/last workspace when mouse-scroll.
+      </description>
+    </key>
+    <key name="hide-activities" type="b">
+      <default>true</default>
+      <summary>Hide the activities widget.</summary>
+      <description>
+        Hides the default Gnome Shell activities widget from the status area.
+      </description>
+    </key>
+    <key name="hide-single-workspaces" type="b">
+      <default>false</default>
+      <summary>Hide the workspace indicator if only a single workspace is open.</summary>
+      <description>
+        Hide the improved workspace indicator if only one workspace is currently open.
+      </description>
+    </key>
+
+  </schema>
+</schemalist>

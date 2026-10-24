@@ -1,0 +1,2284 @@
+import St from "gi://St";
+import Gio from "gi://Gio";
+import GLib from "gi://GLib";
+import Clutter from "gi://Clutter";
+import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
+import { formatNumber, relativeTime, subjectApiToWebUrl } from "./utils.js";
+import { gettext as _ } from "resource:///org/gnome/shell/extensions/extension.js";
+
+// Number of notifications shown per page in the menu
+const NOTIFICATIONS_PAGE_SIZE = 10;
+
+// GNOME 48 introduced orientation; GNOME 45–47 still require vertical.
+const VERTICAL_LAYOUT =
+  "orientation" in St.BoxLayout.prototype
+    ? { orientation: Clutter.Orientation.VERTICAL }
+    : { vertical: true };
+
+const LANG_COLORS = {
+  JavaScript: "#f1e05a",
+  TypeScript: "#3178c6",
+  Python: "#3572A5",
+  Java: "#b07219",
+  C: "#555555",
+  "C++": "#f34b7d",
+  "C#": "#178600",
+  Go: "#00ADD8",
+  Rust: "#dea584",
+  Ruby: "#701516",
+  PHP: "#4F5D95",
+  Swift: "#F05138",
+  Kotlin: "#A97BFF",
+  Dart: "#00B4AB",
+  Shell: "#89e051",
+  HTML: "#e34c26",
+  CSS: "#563d7c",
+  Lua: "#000080",
+  "Vim Script": "#199f4b",
+  Scala: "#c22d40",
+  Haskell: "#5e5086",
+  R: "#198CE7",
+  Elixir: "#6e4a7e",
+  Clojure: "#db5855",
+  Perl: "#0298c3",
+  "Objective-C": "#438eff",
+  Vue: "#41b883",
+  SCSS: "#c6538c",
+  Svelte: "#ff3e00",
+  Zig: "#ec915c",
+  Nix: "#7e7eff",
+  GDScript: "#355570",
+  Vala: "#a56de2",
+};
+
+export class GitHubTrayUI {
+  constructor(indicator, settings, httpSession = null, extensionPath = null) {
+    this._indicator = indicator;
+    this._settings = settings;
+    this._httpSession = httpSession;
+    this._extensionPath = extensionPath;
+    this._reposContainer = null;
+    this._headerSection = null;
+    this._notificationsSection = null;
+    this._notificationsAccordion = null;
+    this._notificationsAccordionContent = null;
+    this._reposAccordion = null;
+    this._reposAccordionContent = null;
+    this._notificationsExpanded = true;
+    this._reposExpanded = true;
+    this._currentView = "repos";
+    this._currentRepo = null;
+    this._cachedRepos = null;
+    this._cachedUsername = null;
+    this._cachedUserInfo = null;
+    this._cachedNotifications = [];
+    this._onFetchRepoData = null;
+    this._onMarkNotificationRead = null;
+    this._onRerunWorkflow = null;
+    this._onFetchWorkflowRuns = null;
+    // Current page index for notifications pagination (0-based)
+    this._notificationsPage = 0;
+    // Reference to the current pager item for in-place updates
+    this._notificationsPagerItem = null;
+    this._notificationsAccordionPager = null;
+  }
+
+  _debugLog(...args) {
+    const debug = this._settings?.get_boolean("debug-mode");
+    if (debug) console.log(...args);
+  }
+
+  _logError(error, context) {
+    console.error(error, context);
+  }
+
+  // Returns the base web URL for GitHub.com or a GitHub Enterprise instance
+  _ghBaseUrl() {
+    const enterpriseUrl = this._settings?.get_string("github-enterprise-url") || "";
+    return enterpriseUrl ? enterpriseUrl.replace(/\/$/, "") : "https://github.com";
+  }
+
+  // Loads issues+PRs for a repo in a single GraphQL call, caches them on the
+  // repo object so the second badge click (issues ↔ PRs) doesn't re-fetch.
+  _loadRepoData(repo, mode) {
+    const render = (data) => {
+      if (mode === "pulls") this.showPullRequestsView(repo, data.pulls);
+      else this.showIssuesView(repo, data.issues);
+    };
+
+    if (repo._cachedRepoData) {
+      render(repo._cachedRepoData);
+      return;
+    }
+    if (!this._onFetchRepoData) {
+      render({ issues: [], pulls: [] });
+      return;
+    }
+    this._onFetchRepoData(repo, (data) => {
+      repo._cachedRepoData = data;
+      render(data);
+    });
+  }
+
+  buildMenu(
+    onRefresh,
+    onOpenPrefs,
+    onDebug,
+    onFetchRepoData = null,
+    onMarkNotificationRead = null,
+    onRerunWorkflow = null,
+    onFetchWorkflowRuns = null,
+    onRefreshNotifications = null,
+  ) {
+    this._onFetchRepoData = onFetchRepoData;
+    this._onMarkNotificationRead = onMarkNotificationRead;
+    this._onRerunWorkflow = onRerunWorkflow;
+    this._onFetchWorkflowRuns = onFetchWorkflowRuns;
+    this._onRefreshNotifications = onRefreshNotifications;
+
+    // Apply font size class
+    this._applyFontSize();
+
+    // Header with user info
+    this._headerSection = new PopupMenu.PopupMenuSection();
+    this._indicator.menu.addMenuItem(this._headerSection);
+
+    // Notifications section (initially hidden)
+    this._notificationsSection = new PopupMenu.PopupMenuSection();
+    this._indicator.menu.addMenuItem(this._notificationsSection);
+
+    // Repos container wrapped in ScrollView
+    this._reposContainer = new PopupMenu.PopupMenuSection();
+
+    const reposScrollView = new St.ScrollView({
+      style_class: "github-tray-scrollview",
+      hscrollbar_policy: St.PolicyType.NEVER,
+      vscrollbar_policy: St.PolicyType.AUTOMATIC,
+      enable_mouse_scrolling: true,
+    });
+    reposScrollView.set_child(this._reposContainer.actor);
+
+    const scrollSection = new PopupMenu.PopupMenuSection();
+    scrollSection.actor.add_child(reposScrollView);
+    this._indicator.menu.addMenuItem(scrollSection);
+
+    // Store callbacks for header action buttons
+    this._onRefresh = onRefresh;
+    this._onOpenPrefs = onOpenPrefs;
+    this._onDebug = onDebug;
+
+    // Set menu width and max height with scroll
+    this._indicator.menu.actor.add_style_class_name("github-tray-menu");
+    this._indicator.menu.box.add_style_class_name("github-tray-menu-box");
+
+    return {};
+  }
+
+  updateDebugButtonVisibility() {
+    if (this._debugBtn) {
+      this._debugBtn.visible = this._settings.get_boolean("debug-mode");
+    }
+  }
+
+  _applyFontSize() {
+    const fontSize = this._settings.get_string("font-size");
+    const menuActor = this._indicator.menu.actor;
+
+    menuActor.remove_style_class_name("github-tray-font-small");
+    menuActor.remove_style_class_name("github-tray-font-medium");
+    menuActor.remove_style_class_name("github-tray-font-large");
+
+    if (fontSize === "medium") {
+      menuActor.add_style_class_name("github-tray-font-medium");
+    } else if (fontSize === "large") {
+      menuActor.add_style_class_name("github-tray-font-large");
+    } else {
+      menuActor.add_style_class_name("github-tray-font-small");
+    }
+  }
+
+  updateBadge(unreadCount) {
+    if (unreadCount > 0) {
+      this._badge?.set_text(unreadCount > 99 ? "99+" : unreadCount.toString());
+      this._badge?.show();
+    } else {
+      this._badge?.hide();
+    }
+  }
+
+  setBadgeWidget(badge) {
+    this._badge = badge;
+  }
+
+  updateMenu(repos, username, userInfo = null, notifications = []) {
+    this._debugLog(
+      `[GitHubTray UI] updateMenu called - repos: ${repos.length}, notifications: ${notifications.length}`,
+    );
+    try {
+      if (!this._indicator) return;
+
+      this._cachedRepos = repos;
+      this._cachedUsername = username;
+      this._cachedUserInfo = userInfo;
+      this._cachedNotifications = notifications;
+      this._currentView = "repos";
+      // Reset pagination when the full menu is refreshed
+      this._notificationsPage = 0;
+      this._notificationsPagerItem = null;
+      this._notificationsAccordionPager = null;
+
+      this._applyFontSize();
+      this._headerSection.removeAll();
+      this._reposContainer.removeAll();
+      this._notificationsSection.removeAll();
+
+      const totalStars = repos.reduce((s, r) => s + r.stargazers_count, 0);
+      const unreadNotifications = notifications.filter((n) => n.unread);
+      const unreadCount = unreadNotifications.length;
+
+      const headerItem = new PopupMenu.PopupBaseMenuItem({
+        reactive: false,
+        can_focus: false,
+      });
+      const headerBox = new St.BoxLayout({
+        ...VERTICAL_LAYOUT,
+        x_expand: true,
+        style_class: "github-tray-header",
+      });
+
+      // First row: user info (avatar + username)
+      const topRow = new St.BoxLayout({
+        x_expand: true,
+        x_align: Clutter.ActorAlign.CENTER,
+        y_align: Clutter.ActorAlign.CENTER,
+        style_class: "github-tray-header-top-row",
+      });
+
+      const userBox = new St.BoxLayout({
+        style_class: "github-tray-header-user-box",
+      });
+
+      if (userInfo?.avatar_url) {
+        const avatarIcon = new St.Icon({
+          gicon: Gio.Icon.new_for_string(userInfo.avatar_url),
+          icon_size: 20,
+          style_class: "github-tray-header-avatar",
+        });
+        userBox.add_child(avatarIcon);
+      }
+
+      const usernameBtn = new St.Button({
+        label: `@${username}`,
+        style_class: "button github-tray-header-user",
+        can_focus: true,
+      });
+      usernameBtn.connect("clicked", () => {
+        try {
+          Gio.AppInfo.launch_default_for_uri(
+            `${this._ghBaseUrl()}/${username}`,
+            null,
+          );
+        } catch (e) {
+          this._logError(e, "GitHubTray:open-profile");
+        }
+        this._indicator.menu.close();
+      });
+      userBox.add_child(usernameBtn);
+
+      topRow.add_child(userBox);
+
+      // Spacer to push action buttons to the right
+      const headerSpacer = new St.Widget({ x_expand: true });
+      topRow.add_child(headerSpacer);
+
+      // Header action buttons (refresh, settings, debug)
+      const headerActionsBox = new St.BoxLayout({
+        style: "spacing: 4px;",
+        y_align: Clutter.ActorAlign.CENTER,
+      });
+
+      const refreshBtn = new St.Button({
+        style_class: "button github-tray-header-action-btn",
+        can_focus: true,
+      });
+      const refreshIcon = new St.Icon({
+        icon_name: "view-refresh-symbolic",
+        icon_size: 14,
+        style_class: "github-tray-header-action-icon",
+      });
+      refreshBtn.set_child(refreshIcon);
+      if (this._onRefresh) {
+        refreshBtn.connect("clicked", this._onRefresh);
+      }
+      headerActionsBox.add_child(refreshBtn);
+
+      const settingsBtn = new St.Button({
+        style_class: "button github-tray-header-action-btn",
+        can_focus: true,
+      });
+      const settingsIcon = new St.Icon({
+        icon_name: "preferences-system-symbolic",
+        icon_size: 14,
+        style_class: "github-tray-header-action-icon",
+      });
+      settingsBtn.set_child(settingsIcon);
+      if (this._onOpenPrefs) {
+        settingsBtn.connect("clicked", this._onOpenPrefs);
+      }
+      headerActionsBox.add_child(settingsBtn);
+
+      const debugBtn = new St.Button({
+        style_class: "button github-tray-header-action-btn",
+        can_focus: true,
+        visible: this._settings.get_boolean("debug-mode"),
+      });
+      const debugIcon = new St.Icon({
+        icon_name: "dialog-warning-symbolic",
+        icon_size: 14,
+        style_class: "github-tray-header-action-icon",
+      });
+      debugBtn.set_child(debugIcon);
+      if (this._onDebug) {
+        debugBtn.connect("clicked", this._onDebug);
+      }
+      headerActionsBox.add_child(debugBtn);
+      this._debugBtn = debugBtn;
+
+      topRow.add_child(headerActionsBox);
+
+      headerBox.add_child(topRow);
+
+      // Second row: badges (centered)
+      const badgesRow = new St.BoxLayout({
+        x_expand: true,
+        x_align: Clutter.ActorAlign.CENTER,
+        y_align: Clutter.ActorAlign.CENTER,
+        style_class: "github-tray-header-badges-row",
+        style: "spacing: 4px; margin-top: 6px;",
+      });
+
+      if (userInfo?.followers !== undefined) {
+        const followersBox = new St.BoxLayout({
+          style_class: "github-tray-header-badge github-tray-header-followers",
+        });
+        const followersIcon = this._makeOcticonIcon(
+          "person-symbolic",
+          "github-tray-header-icon",
+        );
+        followersBox.add_child(followersIcon);
+        const followersLabel = new St.Label({
+          text: formatNumber(userInfo.followers),
+          style_class: "github-tray-header-followers-text",
+        });
+        followersBox.add_child(followersLabel);
+        badgesRow.add_child(followersBox);
+      }
+
+      const reposCountBox = new St.BoxLayout({
+        style_class: "github-tray-header-badge github-tray-header-repos",
+      });
+      const reposIcon = new St.Icon({
+        icon_name: "folder-documents-symbolic",
+        style_class: "github-tray-header-icon",
+      });
+      reposCountBox.add_child(reposIcon);
+      const reposCountLabel = new St.Label({
+        text: formatNumber(userInfo?.public_repos || repos.length),
+        style_class: "github-tray-header-repos-text",
+      });
+      reposCountBox.add_child(reposCountLabel);
+      badgesRow.add_child(reposCountBox);
+
+      const starsBox = new St.BoxLayout({
+        style_class: "github-tray-header-badge github-tray-header-stars",
+      });
+
+      const starIcon = this._makeOcticonIcon(
+        "star-symbolic",
+        "github-tray-header-icon octicon-stat-star",
+      );
+      starsBox.add_child(starIcon);
+
+      const totalStarsLabel = new St.Label({
+        text: formatNumber(totalStars),
+        style_class: "github-tray-header-stars-text",
+      });
+      starsBox.add_child(totalStarsLabel);
+      badgesRow.add_child(starsBox);
+
+      headerBox.add_child(badgesRow);
+
+      headerItem.add_child(headerBox);
+      this._headerSection.addMenuItem(headerItem);
+      this._headerSection.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+      const showNotifications =
+        this._settings.get_boolean("show-notifications");
+      const showRepos = repos.length > 0;
+
+      this._debugLog(
+        `[GitHubTray UI] Section visibility - Notifications: ${showNotifications} (setting: ${this._settings.get_boolean("show-notifications")}, count: ${unreadNotifications.length})`,
+      );
+      this._debugLog(
+        `[GitHubTray UI] Section visibility - Repos: ${showRepos} (count: ${repos.length})`,
+      );
+
+      const sectionsCount = [showNotifications, showRepos].filter(
+        Boolean,
+      ).length;
+      this._debugLog(`[GitHubTray UI] Total sections to show: ${sectionsCount}`);
+
+      if (sectionsCount > 1) {
+        // Use accordions when multiple sections are present
+        this._debugLog(
+          "[GitHubTray UI] Using accordion layout (multiple sections)",
+        );
+        if (showNotifications) {
+          this._debugLog("[GitHubTray UI] Building notifications accordion");
+          this._buildNotificationsAccordion(unreadNotifications);
+        }
+        if (showRepos) {
+          this._debugLog("[GitHubTray UI] Building repos accordion");
+          this._buildReposAccordion(repos);
+        }
+      } else {
+        // Show sections directly without accordions
+        this._debugLog("[GitHubTray UI] Using direct layout (single section)");
+        if (showNotifications) {
+          this._debugLog("[GitHubTray UI] Building notifications section");
+          this._buildNotificationsSection(unreadNotifications);
+        }
+        if (repos.length === 0) {
+          this.showMessage(_("No repositories found"));
+          return;
+        }
+        for (const repo of repos) {
+          const item = this._createRepoItem(repo);
+          this._reposContainer.addMenuItem(item);
+        }
+      }
+    } catch (e) {
+      this._logError(e, "GitHubTray:updateMenu");
+    }
+  }
+
+  _buildNotificationsSection(notifications) {
+    const sectionTitle = new PopupMenu.PopupBaseMenuItem({
+      reactive: false,
+      can_focus: false,
+    });
+    const titleBox = new St.BoxLayout({
+      x_expand: true,
+      style_class: "github-tray-notification-header",
+    });
+    const titleLabel = new St.Label({
+      text: _("Notifications"),
+      style_class: "github-tray-notification-section-title",
+      x_expand: true,
+    });
+    titleBox.add_child(titleLabel);
+
+    // Open All button
+    const openAllBtn = new St.Button({
+      label: _("Open All"),
+      style_class: "button github-tray-link-btn-blue",
+      can_focus: true,
+    });
+    openAllBtn.connect("clicked", () => {
+      try {
+        Gio.AppInfo.launch_default_for_uri(
+          `${this._ghBaseUrl()}/notifications`,
+          null,
+        );
+      } catch (e) {
+        this._logError(e, "GitHubTray:open-notifications");
+      }
+      this._indicator.menu.close();
+    });
+    titleBox.add_child(openAllBtn);
+
+    sectionTitle.add_child(titleBox);
+    this._headerSection.addMenuItem(sectionTitle);
+
+    if (notifications.length === 0) {
+      const emptyItem = new PopupMenu.PopupBaseMenuItem({
+        reactive: false,
+        can_focus: false,
+      });
+      const emptyLabel = new St.Label({
+        text: _("No unread notifications"),
+        style_class: "github-tray-notification-empty",
+      });
+      emptyItem.add_child(emptyLabel);
+      this._headerSection.addMenuItem(emptyItem);
+    } else {
+      // Clamp current page to valid range
+      const totalPages = Math.ceil(notifications.length / NOTIFICATIONS_PAGE_SIZE);
+      if (this._notificationsPage >= totalPages) {
+        this._notificationsPage = totalPages - 1;
+      }
+      const start = this._notificationsPage * NOTIFICATIONS_PAGE_SIZE;
+      const displayNotifications = notifications.slice(
+        start,
+        start + NOTIFICATIONS_PAGE_SIZE,
+      );
+
+      this._notificationsContainer = new PopupMenu.PopupMenuSection();
+      for (const notification of displayNotifications) {
+        const item = this._createNotificationItem(notification);
+        this._notificationsContainer.addMenuItem(item);
+      }
+
+      const scrollView = new St.ScrollView({
+        style_class: "github-tray-notifications-scrollview",
+        hscrollbar_policy: St.PolicyType.NEVER,
+        vscrollbar_policy: St.PolicyType.AUTOMATIC,
+        enable_mouse_scrolling: true,
+      });
+      scrollView.set_child(this._notificationsContainer.actor);
+
+      const scrollSection = new PopupMenu.PopupMenuSection();
+      scrollSection.actor.add_child(scrollView);
+      this._headerSection.addMenuItem(scrollSection);
+
+      // Pagination controls (prev / page indicator / next)
+      if (totalPages > 1) {
+        const pagerItem = this._createNotificationsPager(
+          notifications,
+          totalPages,
+          false,
+        );
+        this._notificationsPagerItem = pagerItem;
+        this._headerSection.addMenuItem(pagerItem);
+      }
+    }
+  }
+
+  _createAccordionHeader(
+    title,
+    count,
+    isExpanded,
+    onToggle,
+    iconName = null,
+    actionButton = null,
+  ) {
+    const headerItem = new PopupMenu.PopupBaseMenuItem({
+      reactive: false,
+      can_focus: false,
+      style_class: "github-tray-accordion-header",
+    });
+
+    const headerBox = new St.BoxLayout({
+      x_expand: true,
+      y_align: Clutter.ActorAlign.CENTER,
+      style_class: "github-tray-accordion-header-box",
+    });
+
+    const arrowIcon = new St.Icon({
+      icon_name: isExpanded ? "pan-down-symbolic" : "pan-end-symbolic",
+      style_class: "github-tray-accordion-arrow",
+    });
+
+    const titleLabel = new St.Label({
+      text: title,
+      style_class: "github-tray-accordion-title",
+    });
+
+    const countLabel = new St.Label({
+      text: `(${count})`,
+      style_class: "github-tray-accordion-count",
+    });
+
+    // Create clickable button for toggling
+    const toggleButton = new St.Button({
+      x_expand: true,
+      style_class: "github-tray-accordion-toggle",
+      can_focus: true,
+    });
+
+    const toggleBox = new St.BoxLayout({
+      x_expand: true,
+      y_align: Clutter.ActorAlign.CENTER,
+      style: "spacing: 8px;",
+    });
+
+    // Add arrow first (caret)
+    toggleBox.add_child(arrowIcon);
+
+    // Then add icon if provided
+    if (iconName) {
+      const icon = new St.Icon({
+        icon_name: iconName,
+        icon_size: 14,
+        style_class: "github-tray-accordion-icon",
+      });
+      toggleBox.add_child(icon);
+    }
+
+    // Finally add title and count
+    toggleBox.add_child(titleLabel);
+    toggleBox.add_child(countLabel);
+    toggleButton.set_child(toggleBox);
+
+    toggleButton.connect("clicked", () => {
+      onToggle(arrowIcon);
+    });
+
+    headerBox.add_child(toggleButton);
+
+    if (actionButton) {
+      const spacer = new St.Widget({ width: 8 });
+      headerBox.add_child(spacer);
+      headerBox.add_child(actionButton);
+    }
+
+    headerItem.add_child(headerBox);
+
+    return { headerItem, arrowIcon };
+  }
+
+  _buildNotificationsAccordion(notifications) {
+    // Open All button
+    const openAllBtn = new St.Button({
+      label: _("Open All"),
+      style_class: "github-tray-accordion-action-btn",
+      can_focus: true,
+    });
+    openAllBtn.connect("clicked", () => {
+      try {
+        Gio.AppInfo.launch_default_for_uri(
+          `${this._ghBaseUrl()}/notifications`,
+          null,
+        );
+      } catch (e) {
+        this._logError(e, "GitHubTray:open-notifications");
+      }
+      this._indicator.menu.close();
+    });
+
+    const { headerItem, arrowIcon } = this._createAccordionHeader(
+      _("Notifications"),
+      notifications.length,
+      this._notificationsExpanded,
+      (icon) => {
+        this._notificationsExpanded = !this._notificationsExpanded;
+        icon.icon_name = this._notificationsExpanded
+          ? "pan-down-symbolic"
+          : "pan-end-symbolic";
+        if (this._notificationsAccordionScrollView) {
+          this._notificationsAccordionScrollView.visible =
+            this._notificationsExpanded;
+        }
+        if (this._notificationsAccordionPager) {
+          this._notificationsAccordionPager.actor.visible =
+            this._notificationsExpanded;
+        }
+      },
+      "preferences-system-notifications-symbolic",
+      openAllBtn,
+    );
+    this._headerSection.addMenuItem(headerItem);
+
+    if (notifications.length === 0) {
+      this._notificationsAccordionContent = new PopupMenu.PopupMenuSection();
+      this._notificationsAccordionContent.actor.visible =
+        this._notificationsExpanded;
+
+      const emptyItem = new PopupMenu.PopupBaseMenuItem({
+        reactive: false,
+        can_focus: false,
+      });
+      const emptyLabel = new St.Label({
+        text: _("No unread notifications"),
+        style_class: "github-tray-notification-empty",
+      });
+      emptyItem.add_child(emptyLabel);
+      this._notificationsAccordionContent.addMenuItem(emptyItem);
+      this._headerSection.addMenuItem(this._notificationsAccordionContent);
+    } else {
+      // Clamp current page to valid range
+      const totalPages = Math.ceil(notifications.length / NOTIFICATIONS_PAGE_SIZE);
+      if (this._notificationsPage >= totalPages) {
+        this._notificationsPage = totalPages - 1;
+      }
+      const start = this._notificationsPage * NOTIFICATIONS_PAGE_SIZE;
+      const displayNotifications = notifications.slice(
+        start,
+        start + NOTIFICATIONS_PAGE_SIZE,
+      );
+
+      this._notificationsContainer = new PopupMenu.PopupMenuSection();
+      for (const notification of displayNotifications) {
+        const item = this._createNotificationItem(notification);
+        this._notificationsContainer.addMenuItem(item);
+      }
+
+      const scrollView = new St.ScrollView({
+        style_class: "github-tray-notifications-scrollview",
+        hscrollbar_policy: St.PolicyType.NEVER,
+        vscrollbar_policy: St.PolicyType.AUTOMATIC,
+        enable_mouse_scrolling: true,
+      });
+      scrollView.set_child(this._notificationsContainer.actor);
+      scrollView.visible = this._notificationsExpanded;
+      this._notificationsAccordionScrollView = scrollView;
+
+      const scrollSection = new PopupMenu.PopupMenuSection();
+      scrollSection.actor.add_child(scrollView);
+      this._headerSection.addMenuItem(scrollSection);
+
+      // Pagination controls (prev / page indicator / next)
+      if (totalPages > 1) {
+        const pagerItem = this._createNotificationsPager(
+          notifications,
+          totalPages,
+          true,
+        );
+        pagerItem.actor.visible = this._notificationsExpanded;
+        this._notificationsAccordionPager = pagerItem;
+        this._notificationsPagerItem = pagerItem;
+        this._headerSection.addMenuItem(pagerItem);
+      }
+    }
+
+    this._headerSection.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+  }
+
+  /**
+   * Creates a pager row (prev button, "page X/Y" label, next button) for
+   * the notifications list.
+   *
+   * @param {Array} notifications - Full list of notifications being paginated
+   * @param {number} totalPages   - Total number of pages
+   * @param {boolean} inAccordion - Whether we are inside an accordion (affects
+   *                                rebuild path after navigation)
+   * @returns {PopupMenu.PopupBaseMenuItem}
+   */
+  _createNotificationsPager(notifications, totalPages, inAccordion) {
+    const pagerItem = new PopupMenu.PopupBaseMenuItem({
+      reactive: false,
+      can_focus: false,
+      style_class: "github-tray-notifications-pager",
+    });
+
+    const pagerBox = new St.BoxLayout({
+      x_expand: true,
+      y_align: Clutter.ActorAlign.CENTER,
+      style_class: "github-tray-notifications-pager-box",
+    });
+
+    // Previous page button
+    const prevBtn = new St.Button({
+      accessible_name: _("Previous page"),
+      child: new St.Icon({ icon_name: "go-previous-symbolic", icon_size: 12 }),
+      style_class: "button github-tray-pager-btn",
+      can_focus: true,
+      reactive: this._notificationsPage > 0,
+    });
+    prevBtn.set_opacity(this._notificationsPage > 0 ? 255 : 80);
+    prevBtn.connect("clicked", () => {
+      if (this._notificationsPage > 0) {
+        this._notificationsPage--;
+        this._rebuildNotificationsInPlace(notifications, inAccordion);
+      }
+    });
+
+    // Page indicator label
+    const pageLabel = new St.Label({
+      text: `${this._notificationsPage + 1} / ${totalPages}`,
+      style_class: "github-tray-pager-label",
+      x_expand: true,
+      x_align: Clutter.ActorAlign.CENTER,
+    });
+
+    // Next page button
+    const nextBtn = new St.Button({
+      accessible_name: _("Next page"),
+      child: new St.Icon({ icon_name: "go-next-symbolic", icon_size: 12 }),
+      style_class: "button github-tray-pager-btn",
+      can_focus: true,
+      reactive: this._notificationsPage < totalPages - 1,
+    });
+    nextBtn.set_opacity(this._notificationsPage < totalPages - 1 ? 255 : 80);
+    nextBtn.connect("clicked", () => {
+      if (this._notificationsPage < totalPages - 1) {
+        this._notificationsPage++;
+        this._rebuildNotificationsInPlace(notifications, inAccordion);
+      }
+    });
+
+    pagerBox.add_child(prevBtn);
+    pagerBox.add_child(pageLabel);
+    pagerBox.add_child(nextBtn);
+    pagerItem.add_child(pagerBox);
+
+    // Store references for in-place updates on page change
+    pagerItem._prevBtn = prevBtn;
+    pagerItem._pageLabel = pageLabel;
+    pagerItem._nextBtn = nextBtn;
+
+    return pagerItem;
+  }
+
+  /**
+   * Updates the pager controls (button states and label) without moving the
+   * pager item in the actor tree, so it stays in the correct position.
+   *
+   * @param {PopupMenu.PopupBaseMenuItem} pagerItem - The pager item to update
+   * @param {number} totalPages - Total number of pages
+   */
+  _updatePagerControls(pagerItem, totalPages) {
+    if (!pagerItem) return;
+    const { _prevBtn: prevBtn, _pageLabel: pageLabel, _nextBtn: nextBtn } =
+      pagerItem;
+    if (!prevBtn || !pageLabel || !nextBtn) return;
+
+    const canGoPrev = this._notificationsPage > 0;
+    const canGoNext = this._notificationsPage < totalPages - 1;
+
+    prevBtn.reactive = canGoPrev;
+    prevBtn.set_opacity(canGoPrev ? 255 : 80);
+
+    nextBtn.reactive = canGoNext;
+    nextBtn.set_opacity(canGoNext ? 255 : 80);
+
+    pageLabel.set_text(`${this._notificationsPage + 1} / ${totalPages}`);
+  }
+
+  /**
+   * Rebuilds the notifications list in-place after a page change without
+   * re-rendering the whole menu.
+   *
+   * @param {Array} notifications - Full list of notifications being paginated
+   * @param {boolean} inAccordion - Whether the pager lives inside an accordion
+   */
+  _rebuildNotificationsInPlace(notifications, inAccordion) {
+    if (!this._notificationsContainer) {
+      // Fallback: full menu rebuild
+      if (this._cachedRepos && this._cachedUsername) {
+        this.updateMenu(
+          this._cachedRepos,
+          this._cachedUsername,
+          this._cachedUserInfo,
+          this._cachedNotifications,
+        );
+      }
+      return;
+    }
+
+    const totalPages = Math.ceil(notifications.length / NOTIFICATIONS_PAGE_SIZE);
+    if (this._notificationsPage >= totalPages) {
+      this._notificationsPage = totalPages - 1;
+    }
+    const start = this._notificationsPage * NOTIFICATIONS_PAGE_SIZE;
+    const displayNotifications = notifications.slice(
+      start,
+      start + NOTIFICATIONS_PAGE_SIZE,
+    );
+
+    // Replace notification items
+    this._notificationsContainer.removeAll();
+    for (const notification of displayNotifications) {
+      const item = this._createNotificationItem(notification);
+      this._notificationsContainer.addMenuItem(item);
+    }
+
+    // Update pager controls in-place so the pager item stays in the correct
+    // position in the menu and does not drift into the repos section.
+    const pagerItem =
+      this._notificationsPagerItem ||
+      (inAccordion ? this._notificationsAccordionPager : null);
+    this._updatePagerControls(pagerItem, totalPages);
+  }
+
+  _createWorkflowRunItem(run) {
+    const menuItem = new PopupMenu.PopupBaseMenuItem({
+      style_class: "github-tray-workflow-item",
+      can_focus: true,
+    });
+
+    const mainBox = new St.BoxLayout({
+      ...VERTICAL_LAYOUT,
+      x_expand: true,
+      style_class: "github-tray-workflow-box",
+    });
+
+    const topRow = new St.BoxLayout({
+      x_expand: true,
+      y_align: Clutter.ActorAlign.CENTER,
+      style_class: "github-tray-workflow-top-row",
+    });
+
+    // Status icon
+    const { iconName, styleClass } = this._getWorkflowStatusIcon(run);
+    const statusIcon = new St.Icon({
+      icon_name: iconName,
+      style_class: `github-tray-workflow-status-icon ${styleClass}`,
+    });
+    topRow.add_child(statusIcon);
+
+    // Workflow name button
+    const nameBtn = new St.Button({
+      label: run.name,
+      style_class: "button github-tray-workflow-name",
+      can_focus: true,
+      x_expand: true,
+      x_align: Clutter.ActorAlign.START,
+    });
+    const nameBtnChild = nameBtn.get_child();
+    if (nameBtnChild && nameBtnChild.clutter_text) {
+      nameBtnChild.clutter_text.set_ellipsize(3);
+    }
+    nameBtn.connect("clicked", () => {
+      try {
+        Gio.AppInfo.launch_default_for_uri(run.html_url, null);
+      } catch (e) {
+        this._logError(e, "GitHubTray:open-workflow");
+      }
+      this._indicator.menu.close();
+    });
+    topRow.add_child(nameBtn);
+
+    // Re-run button for failed/cancelled workflows
+    if (
+      run.status === "completed" &&
+      (run.conclusion === "failure" || run.conclusion === "cancelled")
+    ) {
+      const rerunBtn = new St.Button({
+        label: _("Re-run"),
+        style_class: "button github-tray-workflow-rerun-btn",
+        can_focus: true,
+      });
+      rerunBtn.connect("clicked", () => {
+        if (this._onRerunWorkflow) {
+          rerunBtn.set_label(_("Running..."));
+          rerunBtn.set_reactive(false);
+          this._onRerunWorkflow(run, (success) => {
+            if (success) {
+              rerunBtn.set_label(_("Re-run"));
+            } else {
+              rerunBtn.set_label(_("Failed"));
+              GLib.timeout_add(GLib.PRIORITY_DEFAULT, 2000, () => {
+                rerunBtn.set_label(_("Re-run"));
+                rerunBtn.set_reactive(true);
+                return GLib.SOURCE_REMOVE;
+              });
+            }
+          });
+        }
+      });
+      topRow.add_child(rerunBtn);
+    }
+
+    mainBox.add_child(topRow);
+
+    // Repository and branch info
+    const infoRow = new St.BoxLayout({
+      x_expand: true,
+      style_class: "github-tray-workflow-info-row",
+    });
+
+    const repoLabel = new St.Label({
+      text: run.repository_full_name,
+      style_class: "github-tray-workflow-repo",
+    });
+    infoRow.add_child(repoLabel);
+
+    const branchLabel = new St.Label({
+      text: ` • ${run.head_branch}`,
+      style_class: "github-tray-workflow-branch",
+    });
+    infoRow.add_child(branchLabel);
+
+    mainBox.add_child(infoRow);
+
+    // Status and timing info
+    const metaRow = new St.BoxLayout({
+      x_expand: true,
+      style_class: "github-tray-workflow-meta-row",
+    });
+
+    const statusText = this._getWorkflowStatusText(run);
+    const statusTextLabel = new St.Label({
+      text: statusText,
+      style_class: "github-tray-workflow-status-text",
+    });
+    metaRow.add_child(statusTextLabel);
+
+    const spacer = new St.Widget({ x_expand: true });
+    metaRow.add_child(spacer);
+
+    const timeText = relativeTime(run.updated_at);
+    const timeLabel = new St.Label({
+      text: timeText,
+      style_class: "github-tray-workflow-time",
+    });
+    metaRow.add_child(timeLabel);
+
+    mainBox.add_child(metaRow);
+
+    menuItem.add_child(mainBox);
+
+    menuItem.connect("activate", () => {
+      try {
+        Gio.AppInfo.launch_default_for_uri(run.html_url, null);
+      } catch (e) {
+        this._logError(e, "GitHubTray:open-workflow-activate");
+      }
+      this._indicator.menu.close();
+    });
+
+    return menuItem;
+  }
+
+  _getWorkflowStatusIcon(run) {
+    if (run.status === "in_progress") {
+      return { iconName: "content-loading-symbolic", styleClass: "workflow-pending" };
+    }
+    if (run.status === "queued") {
+      return { iconName: "alarm-symbolic", styleClass: "workflow-pending" };
+    }
+    if (run.status === "completed") {
+      switch (run.conclusion) {
+        case "success":
+          return { iconName: "object-select-symbolic", styleClass: "workflow-success" };
+        case "failure":
+          return { iconName: "dialog-error-symbolic", styleClass: "workflow-failure" };
+        case "cancelled":
+          return { iconName: "process-stop-symbolic", styleClass: "workflow-inactive" };
+        case "skipped":
+          return { iconName: "media-skip-forward-symbolic", styleClass: "workflow-inactive" };
+        default:
+          return { iconName: "dialog-information-symbolic", styleClass: "workflow-other" };
+      }
+    }
+    return { iconName: "dialog-information-symbolic", styleClass: "workflow-other" };
+  }
+
+  _getWorkflowStatusText(run) {
+    if (run.status === "in_progress") {
+      return _("In progress...");
+    }
+    if (run.status === "queued") {
+      return _("Queued");
+    }
+    if (run.status === "completed") {
+      const duration = this._calculateDuration(
+        run.run_started_at,
+        run.updated_at,
+      );
+      switch (run.conclusion) {
+        case "success":
+          return _("Success • %s").format(duration);
+        case "failure":
+          return _("Failed • %s").format(duration);
+        case "cancelled":
+          return _("Cancelled");
+        case "skipped":
+          return _("Skipped");
+        default:
+          return run.conclusion || _("Completed");
+      }
+    }
+    return run.status;
+  }
+
+  _calculateDuration(startTime, endTime) {
+    if (!startTime) return "";
+
+    const start = GLib.DateTime.new_from_iso8601(startTime, null);
+    const end = endTime
+      ? GLib.DateTime.new_from_iso8601(endTime, null)
+      : GLib.DateTime.new_now_utc();
+
+    if (!start || !end) return "";
+
+    const diffSec = end.to_unix() - start.to_unix();
+    const minutes = Math.floor(diffSec / 60);
+    const seconds = diffSec % 60;
+
+    if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    }
+    return `${seconds}s`;
+  }
+
+  _buildReposAccordion(repos) {
+    // Show All button for repositories
+    const showAllBtn = new St.Button({
+      label: _("Show All"),
+      style_class: "github-tray-accordion-action-btn",
+      can_focus: true,
+    });
+    showAllBtn.connect("clicked", () => {
+      try {
+        const username = this._cachedUsername || "";
+        Gio.AppInfo.launch_default_for_uri(
+          `${this._ghBaseUrl()}/${username}?tab=repositories`,
+          null,
+        );
+      } catch (e) {
+        this._logError(e, "GitHubTray:open-repositories");
+      }
+      this._indicator.menu.close();
+    });
+
+    const { headerItem, arrowIcon } = this._createAccordionHeader(
+      _("Repositories"),
+      repos.length,
+      this._reposExpanded,
+      (icon) => {
+        this._reposExpanded = !this._reposExpanded;
+        icon.icon_name = this._reposExpanded
+          ? "pan-down-symbolic"
+          : "pan-end-symbolic";
+        if (this._reposAccordionContent) {
+          this._reposAccordionContent.visible = this._reposExpanded;
+        }
+      },
+      "folder-documents-symbolic",
+      showAllBtn,
+    );
+    this._headerSection.addMenuItem(headerItem);
+
+    const scrollView = this._reposContainer.actor.get_parent();
+    if (scrollView) {
+      scrollView.visible = this._reposExpanded;
+      this._reposAccordionContent = scrollView;
+    }
+
+    for (const repo of repos) {
+      const item = this._createRepoItem(repo);
+      this._reposContainer.addMenuItem(item);
+    }
+  }
+
+  /**
+   * Creates an St.Icon from a bundled Octicon SVG file.
+   *
+   * @param {string} name - SVG filename without extension (e.g. "issue-opened-symbolic")
+   * @param {string} styleClass - CSS class to apply to the icon
+   * @returns {St.Icon}
+   */
+  _makeOcticonIcon(name, styleClass) {
+    const path = `${this._extensionPath}/ui/icons/${name}.svg`;
+    const gicon = Gio.Icon.new_for_string(path);
+    return new St.Icon({ gicon, style_class: styleClass });
+  }
+
+  _makeIconLabel(icon, text) {
+    const box = new St.BoxLayout({
+      y_align: Clutter.ActorAlign.CENTER,
+      style_class: "github-tray-icon-label",
+    });
+    box.add_child(icon);
+    box.add_child(new St.Label({ text, y_align: Clutter.ActorAlign.CENTER }));
+    return box;
+  }
+
+  _createBackButton() {
+    const button = new St.Button({
+      style_class: "button github-tray-back-btn",
+      can_focus: true,
+      child: this._makeIconLabel(
+        new St.Icon({ icon_name: "go-previous-symbolic", icon_size: 12 }),
+        _("Back"),
+      ),
+    });
+    button.connect("clicked", () => this.showReposView());
+    return button;
+  }
+
+  _createNotificationItem(notification) {
+    const menuItem = new PopupMenu.PopupBaseMenuItem({
+      style_class: "github-tray-notification-item",
+      can_focus: true,
+    });
+
+    const mainBox = new St.BoxLayout({
+      ...VERTICAL_LAYOUT,
+      x_expand: true,
+      style_class: "github-tray-notification-box",
+    });
+
+    const topRow = new St.BoxLayout({
+      x_expand: true,
+      y_align: Clutter.ActorAlign.CENTER,
+      style_class: "github-tray-notification-top-row",
+    });
+
+    // Resolve the Octicon SVG name and state badge based on type and GraphQL state
+    const type = notification.subject.type;
+    const stateInfo = notification._stateInfo ?? null;
+
+    // Determine which Octicon SVG to use and which CSS color class to apply
+    let octiconName = "pin-symbolic";        // generic fallback
+    let octiconClass = "github-tray-notification-type-icon";
+    let stateLabel = null;
+
+    if (type === "Issue" || type === "IssueComment") {
+      if (stateInfo?.state === "CLOSED") {
+        octiconName = "issue-closed-symbolic";
+        octiconClass = "github-tray-notification-type-icon octicon-issue-closed";
+        stateLabel = _("Closed");
+      } else {
+        // Default: open (or unknown state)
+        octiconName = "issue-opened-symbolic";
+        octiconClass = "github-tray-notification-type-icon octicon-issue-open";
+        if (stateInfo?.state === "OPEN") stateLabel = _("Open");
+      }
+    } else if (
+      type === "PullRequest" ||
+      type === "PullRequestReview" ||
+      type === "PullRequestReviewComment"
+    ) {
+      if (stateInfo?.isDraft) {
+        octiconName = "pull-request-draft-symbolic";
+        octiconClass = "github-tray-notification-type-icon octicon-pr-draft";
+        stateLabel = _("Draft");
+      } else if (stateInfo?.state === "MERGED") {
+        octiconName = "git-merge-symbolic";
+        octiconClass = "github-tray-notification-type-icon octicon-pr-merged";
+        stateLabel = _("Merged");
+      } else if (stateInfo?.state === "CLOSED") {
+        octiconName = "pull-request-closed-symbolic";
+        octiconClass = "github-tray-notification-type-icon octicon-pr-closed";
+        stateLabel = _("Closed");
+      } else {
+        // Default: open PR (or unknown)
+        octiconName = "pull-request-symbolic";
+        octiconClass = "github-tray-notification-type-icon octicon-pr-open";
+        if (stateInfo?.state === "OPEN") stateLabel = _("Open");
+      }
+    } else if (type === "Commit") {
+      octiconName = "git-commit-symbolic";
+      octiconClass = "github-tray-notification-type-icon octicon-commit";
+    } else if (type === "Release") {
+      octiconName = "tag-symbolic";
+      octiconClass = "github-tray-notification-type-icon octicon-release";
+    } else if (type === "Discussion") {
+      octiconName = "discussion-symbolic";
+      octiconClass = "github-tray-notification-type-icon octicon-discussion";
+    } else if (type === "Mention") {
+      octiconName = "mention-symbolic";
+      octiconClass = "github-tray-notification-type-icon octicon-mention";
+    } else if (type === "Assign") {
+      octiconName = "person-symbolic";
+      octiconClass = "github-tray-notification-type-icon octicon-assign";
+    } else if (type === "ReviewRequested") {
+      octiconName = "eye-symbolic";
+      octiconClass = "github-tray-notification-type-icon octicon-review";
+    } else if (type === "SecurityAlert") {
+      octiconName = "shield-symbolic";
+      octiconClass = "github-tray-notification-type-icon octicon-security";
+    }
+
+    const typeIcon = this._makeOcticonIcon(octiconName, octiconClass);
+    topRow.add_child(typeIcon);
+
+    if (stateLabel) {
+      const stateBadge = new St.Label({
+        text: stateLabel,
+        style_class: "github-tray-notification-state-badge",
+      });
+      topRow.add_child(stateBadge);
+    }
+
+    const repoLabel = new St.Label({
+      text: notification.repository.full_name,
+      style_class: "github-tray-notification-repo",
+    });
+    topRow.add_child(repoLabel);
+
+    const spacer = new St.Widget({ x_expand: true });
+    topRow.add_child(spacer);
+
+    mainBox.add_child(topRow);
+
+    const titleRow = new St.BoxLayout({
+      x_expand: true,
+      y_align: Clutter.ActorAlign.CENTER,
+    });
+
+    const titleBtn = new St.Button({
+      label: notification.subject.title,
+      style_class: "button github-tray-notification-title-btn",
+      can_focus: true,
+      x_expand: true,
+      x_align: Clutter.ActorAlign.START,
+    });
+    const titleBtnChild = titleBtn.get_child();
+    if (titleBtnChild && titleBtnChild.clutter_text) {
+      titleBtnChild.clutter_text.set_ellipsize(3);
+    }
+    titleBtn.connect("clicked", () => {
+      this._openNotification(notification);
+    });
+    titleRow.add_child(titleBtn);
+
+    const markReadBtn = new St.Button({
+      accessible_name: _("Mark as read"),
+      style_class: "button github-tray-mark-read-btn",
+      can_focus: true,
+    });
+    const checkIcon = new St.Icon({ icon_name: "object-select-symbolic", icon_size: 12 });
+    markReadBtn.set_child(checkIcon);
+    markReadBtn.connect("clicked", () => {
+      if (this._onMarkNotificationRead) {
+        this._onMarkNotificationRead(notification, () => {
+          menuItem.destroy();
+        });
+      }
+    });
+    titleRow.add_child(markReadBtn);
+
+    mainBox.add_child(titleRow);
+    menuItem.add_child(mainBox);
+
+    menuItem.connect("activate", () => {
+      this._openNotification(notification);
+    });
+
+    return menuItem;
+  }
+
+  _openNotification(notification) {
+    const enterpriseUrl = this._settings?.get_string("github-enterprise-url") || "";
+    const url =
+      subjectApiToWebUrl(
+        notification.subject?.url,
+        enterpriseUrl,
+        notification.subject?.type,
+      ) ?? notification.repository.html_url;
+    try {
+      Gio.AppInfo.launch_default_for_uri(url, null);
+    } catch (e) {
+      this._logError(e, "GitHubTray:open-notification");
+    }
+    if (this._onMarkNotificationRead) {
+      this._onMarkNotificationRead(notification, () => {});
+    }
+    this._indicator.menu.close();
+  }
+
+  _createRepoItem(repo) {
+    const menuItem = new PopupMenu.PopupBaseMenuItem({
+      style_class: "github-tray-repo-item",
+      can_focus: true,
+    });
+
+    const localPath = this._getLocalPath(repo.full_name);
+
+    const mainBox = new St.BoxLayout({
+      x_expand: true,
+      y_align: Clutter.ActorAlign.START,
+      style: "spacing: 6px;",
+    });
+
+    const outerBox = new St.BoxLayout({
+      ...VERTICAL_LAYOUT,
+      x_expand: true,
+      style_class: localPath
+        ? "github-tray-repo-box-local"
+        : "github-tray-repo-box",
+    });
+
+    const topRow = new St.BoxLayout({
+      x_expand: true,
+      y_align: Clutter.ActorAlign.CENTER,
+      style_class: "github-tray-top-row",
+    });
+
+    const repoDisplayName =
+      repo.owner &&
+      repo.owner.login !== this._settings.get_string("github-username")
+        ? repo.full_name
+        : repo.name;
+
+    const nameBtn = new St.Button({
+      label: repoDisplayName,
+      style_class: "button github-tray-repo-name",
+      can_focus: true,
+      x_expand: true,
+      x_align: Clutter.ActorAlign.START,
+    });
+    const nameBtnChild = nameBtn.get_child();
+    if (nameBtnChild && nameBtnChild.clutter_text) {
+      nameBtnChild.clutter_text.set_ellipsize(3);
+    }
+    nameBtn.connect("clicked", () => {
+      try {
+        Gio.AppInfo.launch_default_for_uri(repo.html_url, null);
+      } catch (e) {
+        this._logError(e, "GitHubTray:open-repo");
+      }
+      this._indicator.menu.close();
+    });
+    topRow.add_child(nameBtn);
+
+    if (repo.language) {
+      const langColor = LANG_COLORS[repo.language] || "#8b949e";
+      const langBox = new St.BoxLayout({
+        style_class: "github-tray-repo-lang-box",
+        style: "spacing: 4px;",
+        y_align: Clutter.ActorAlign.CENTER,
+      });
+      const langDot = new St.Widget({
+        style_class: "github-tray-repo-lang-dot",
+        style: `background-color: ${langColor};`,
+        y_align: Clutter.ActorAlign.CENTER,
+      });
+      const langLabel = new St.Label({
+        text: repo.language,
+        style_class: "github-tray-repo-lang-text",
+      });
+      langBox.add_child(langDot);
+      langBox.add_child(langLabel);
+      topRow.add_child(langBox);
+    }
+
+    outerBox.add_child(topRow);
+
+    if (repo.fork && repo.parent) {
+      const linksRow = new St.BoxLayout({
+        style_class: "github-tray-links-row",
+      });
+
+      const forkBtn = new St.Button({
+        child: this._makeIconLabel(
+          this._makeOcticonIcon("repo-forked-symbolic", "github-tray-stat-icon"),
+          _("parent"),
+        ),
+        style_class: "button github-tray-link-btn-blue",
+        can_focus: true,
+      });
+      forkBtn.connect("clicked", () => {
+        try {
+          Gio.AppInfo.launch_default_for_uri(repo.parent.html_url, null);
+        } catch (e) {
+          this._logError(e, "GitHubTray:open-fork");
+        }
+        this._indicator.menu.close();
+      });
+      linksRow.add_child(forkBtn);
+
+      outerBox.add_child(linksRow);
+    }
+
+    const statsRow = new St.BoxLayout({
+      y_align: Clutter.ActorAlign.CENTER,
+      style_class: "github-tray-stats-row",
+    });
+
+    // Stars
+    const starsBox = new St.BoxLayout({
+      style_class: "github-tray-stat",
+    });
+    const starsIcon = this._makeOcticonIcon(
+      "star-symbolic",
+      "github-tray-stat-icon octicon-stat-star",
+    );
+    const starsLabel = new St.Label({
+      text: formatNumber(repo.stargazers_count),
+      style_class: "github-tray-stat-value",
+    });
+    starsBox.add_child(starsIcon);
+    starsBox.add_child(starsLabel);
+
+    const starsBtn = new St.Button({
+      style_class: "button github-tray-stars-btn",
+      can_focus: true,
+    });
+    starsBtn.set_child(starsBox);
+    starsBtn.connect("clicked", () => {
+      try {
+        Gio.AppInfo.launch_default_for_uri(`${repo.html_url}/stargazers`, null);
+      } catch (e) {
+        this._logError(e, "GitHubTray:open-stars");
+      }
+      this._indicator.menu.close();
+    });
+    statsRow.add_child(starsBtn);
+
+    // Forks
+    const forksBox = new St.BoxLayout({
+      style_class: "github-tray-stat",
+    });
+    const forksIcon = this._makeOcticonIcon(
+      "repo-forked-symbolic",
+      "github-tray-stat-icon octicon-stat-fork",
+    );
+    const forksLabel = new St.Label({
+      text: formatNumber(repo.forks_count),
+      style_class: "github-tray-stat-value",
+    });
+    forksBox.add_child(forksIcon);
+    forksBox.add_child(forksLabel);
+
+    const forksBtn = new St.Button({
+      style_class: "button github-tray-forks-btn",
+      can_focus: true,
+    });
+    forksBtn.set_child(forksBox);
+    forksBtn.connect("clicked", () => {
+      try {
+        Gio.AppInfo.launch_default_for_uri(
+          `${repo.html_url}/network/members`,
+          null,
+        );
+      } catch (e) {
+        this._logError(e, "GitHubTray:open-forks");
+      }
+      this._indicator.menu.close();
+    });
+    statsRow.add_child(forksBtn);
+
+    // Issues count: prefer GraphQL-derived count (issues only), fall back to
+    // open_issues_count (which mixes issues + PRs) when not yet enriched.
+    const issuesCount =
+      typeof repo._issuesCount === "number"
+        ? repo._issuesCount
+        : repo.open_issues_count;
+    const pullsCount =
+      typeof repo._pullsCount === "number" ? repo._pullsCount : 0;
+
+    // Issues
+    const issuesBox = new St.BoxLayout({
+      style_class: "github-tray-stat",
+    });
+    const issuesIcon = this._makeOcticonIcon(
+      "issue-opened-symbolic",
+      "github-tray-stat-icon octicon-stat-issue"
+    );
+    const issuesLabel = new St.Label({
+      text: formatNumber(issuesCount),
+      style_class: "github-tray-stat-value github-tray-issues-value",
+    });
+    issuesBox.add_child(issuesIcon);
+    issuesBox.add_child(issuesLabel);
+
+    const issuesBtn = new St.Button({
+      style_class: "button github-tray-issues-btn",
+      can_focus: true,
+    });
+    issuesBtn.set_child(issuesBox);
+    issuesBtn.connect("clicked", () => {
+      if (this._onFetchRepoData && issuesCount > 0) {
+        this._loadRepoData(repo, "issues");
+      } else {
+        try {
+          Gio.AppInfo.launch_default_for_uri(`${repo.html_url}/issues`, null);
+        } catch (e) {
+          this._logError(e, "GitHubTray:open-issues");
+        }
+        this._indicator.menu.close();
+      }
+    });
+    statsRow.add_child(issuesBtn);
+
+    // Pull Requests
+    const pullsBox = new St.BoxLayout({
+      style_class: "github-tray-stat",
+    });
+    const pullsIcon = this._makeOcticonIcon(
+      "pull-request-symbolic",
+      "github-tray-stat-icon octicon-stat-pr"
+    );
+    const pullsLabel = new St.Label({
+      text: formatNumber(pullsCount),
+      style_class: "github-tray-stat-value github-tray-pulls-value",
+    });
+    pullsBox.add_child(pullsIcon);
+    pullsBox.add_child(pullsLabel);
+
+    const pullsBtn = new St.Button({
+      style_class: "button github-tray-pulls-btn",
+      can_focus: true,
+    });
+    pullsBtn.set_child(pullsBox);
+    pullsBtn.connect("clicked", () => {
+      if (this._onFetchRepoData && pullsCount > 0) {
+        this._loadRepoData(repo, "pulls");
+      } else {
+        try {
+          Gio.AppInfo.launch_default_for_uri(`${repo.html_url}/pulls`, null);
+        } catch (e) {
+          this._logError(e, "GitHubTray:open-pulls");
+        }
+        this._indicator.menu.close();
+      }
+    });
+    statsRow.add_child(pullsBtn);
+
+    // Last updated
+    const updatedStr = relativeTime(repo.updated_at);
+    const updatedLabel = new St.Label({
+      text: _("Updated %s").format(updatedStr),
+      style_class: "github-tray-updated",
+      x_expand: true,
+      x_align: Clutter.ActorAlign.END,
+    });
+    statsRow.add_child(updatedLabel);
+
+    outerBox.add_child(statsRow);
+
+    // Description
+    if (repo.description) {
+      const descLabel = new St.Label({
+        text: repo.description,
+        style_class: "github-tray-description",
+        x_expand: true,
+      });
+      descLabel.clutter_text.set_ellipsize(3);
+      descLabel.clutter_text.set_line_wrap(false);
+      outerBox.add_child(descLabel);
+    }
+
+    // Action buttons (workflow and folder) under description, aligned to the right
+    const sideButtonsBox = new St.BoxLayout({
+      y_align: Clutter.ActorAlign.CENTER,
+      style: "spacing: 4px;",
+    });
+
+    // Issues button (only if there are open issues)
+    if (issuesCount > 0) {
+      const issuesBtnCompact = new St.Button({
+        style_class: "button github-tray-issues-btn-compact",
+        can_focus: true,
+      });
+      const issuesIcon = this._makeOcticonIcon(
+        "issue-opened-symbolic",
+        "github-tray-issues-icon-compact",
+      );
+      issuesBtnCompact.set_child(issuesIcon);
+      issuesBtnCompact.connect("clicked", () => {
+        if (this._onFetchRepoData) {
+          this._loadRepoData(repo, "issues");
+        } else {
+          try {
+            Gio.AppInfo.launch_default_for_uri(
+              `${repo.html_url}/issues`,
+              null,
+            );
+          } catch (e) {
+            this._logError(e, "GitHubTray:open-issues-compact");
+          }
+          this._indicator.menu.close();
+        }
+      });
+      sideButtonsBox.add_child(issuesBtnCompact);
+    }
+
+    // Pull Requests button (only if there are open PRs)
+    if (pullsCount > 0) {
+      const pullsBtnCompact = new St.Button({
+        style_class: "button github-tray-pulls-btn-compact",
+        can_focus: true,
+      });
+      const pullsIconCompact = this._makeOcticonIcon(
+        "pull-request-symbolic",
+        "github-tray-pulls-icon-compact",
+      );
+      pullsBtnCompact.set_child(pullsIconCompact);
+      pullsBtnCompact.connect("clicked", () => {
+        if (this._onFetchRepoData) {
+          this._loadRepoData(repo, "pulls");
+        } else {
+          try {
+            Gio.AppInfo.launch_default_for_uri(
+              `${repo.html_url}/pulls`,
+              null,
+            );
+          } catch (e) {
+            this._logError(e, "GitHubTray:open-pulls-compact");
+          }
+          this._indicator.menu.close();
+        }
+      });
+      sideButtonsBox.add_child(pullsBtnCompact);
+    }
+
+    // Workflow runs button
+    const workflowBtn = new St.Button({
+      style_class: "button github-tray-workflow-btn-compact",
+      can_focus: true,
+    });
+    const workflowIcon = new St.Icon({
+      icon_name: "media-playback-start-symbolic",
+      icon_size: 12,
+      style_class: "github-tray-workflow-icon",
+    });
+    workflowBtn.set_child(workflowIcon);
+    workflowBtn.connect("clicked", () => {
+      if (this._onFetchWorkflowRuns) {
+        this._onFetchWorkflowRuns(repo, (workflowRuns) => {
+          this.showWorkflowRunsView(repo, workflowRuns);
+        });
+      }
+    });
+    sideButtonsBox.add_child(workflowBtn);
+
+    // Folder button if local path exists
+    if (localPath) {
+      const folderBtn = new St.Button({
+        style_class: "button github-tray-folder-btn-compact",
+        can_focus: true,
+      });
+      const folderIcon = new St.Icon({
+        icon_name: "folder-symbolic",
+        icon_size: 12,
+        style_class: "github-tray-folder-icon",
+      });
+      folderBtn.set_child(folderIcon);
+      folderBtn.connect("clicked", () => {
+        this._openLocalProject(localPath);
+        this._indicator.menu.close();
+      });
+      sideButtonsBox.add_child(folderBtn);
+    }
+
+    // Actions row - bottom right under description
+    const actionsRow = new St.BoxLayout({
+      x_expand: true,
+      x_align: Clutter.ActorAlign.END,
+      y_align: Clutter.ActorAlign.CENTER,
+      style_class: "github-tray-actions-row",
+    });
+    actionsRow.add_child(sideButtonsBox);
+    outerBox.add_child(actionsRow);
+
+    mainBox.add_child(outerBox);
+    menuItem.add_child(mainBox);
+
+    menuItem.connect("activate", () => {
+      try {
+        Gio.AppInfo.launch_default_for_uri(repo.html_url, null);
+      } catch (e) {
+        this._logError(e, "GitHubTray:open-uri");
+      }
+      this._indicator.menu.close();
+    });
+
+    return menuItem;
+  }
+
+  _getLocalPath(repoFullName) {
+    try {
+      const localProjectsJson = this._settings.get_string("local-projects");
+      const localProjects = JSON.parse(localProjectsJson);
+      return localProjects[repoFullName] || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  _openLocalProject(path) {
+    const editor = this._settings.get_string("local-editor");
+
+    try {
+      const file = Gio.File.new_for_path(path);
+      if (!file.query_exists(null)) {
+        return;
+      }
+
+      Gio.Subprocess.new([editor, path], Gio.SubprocessFlags.NONE);
+    } catch (e) {
+      this._logError(e, "GitHubTray:open-local");
+    }
+  }
+
+  showMessage(text) {
+    if (!this._reposContainer) return;
+    try {
+      this._reposContainer.removeAll();
+      const item = new PopupMenu.PopupMenuItem(text, {
+        reactive: false,
+        can_focus: false,
+      });
+      this._reposContainer.addMenuItem(item);
+    } catch (e) {
+      this._logError(e, "GitHubTray:showMessage");
+    }
+  }
+
+  // Shows an error message with a clickable "Refresh" entry so the user can
+  // retry the failed load without having to reach the header refresh button.
+  showError(text, onRetry) {
+    if (!this._reposContainer) return;
+    try {
+      this._reposContainer.removeAll();
+
+      const messageItem = new PopupMenu.PopupMenuItem(text, {
+        reactive: false,
+        can_focus: false,
+      });
+      this._reposContainer.addMenuItem(messageItem);
+
+      const retryItem = new PopupMenu.PopupBaseMenuItem({
+        reactive: true,
+        can_focus: true,
+        style_class: "github-tray-error-retry",
+      });
+      const retryBox = new St.BoxLayout({
+        x_expand: true,
+        x_align: Clutter.ActorAlign.CENTER,
+        y_align: Clutter.ActorAlign.CENTER,
+        style: "spacing: 6px;",
+      });
+      const retryIcon = new St.Icon({
+        icon_name: "view-refresh-symbolic",
+        icon_size: 14,
+      });
+      const retryLabel = new St.Label({ text: _("Refresh") });
+      retryBox.add_child(retryIcon);
+      retryBox.add_child(retryLabel);
+      retryItem.add_child(retryBox);
+      retryItem.connect("activate", () => {
+        if (typeof onRetry === "function") onRetry();
+      });
+      this._reposContainer.addMenuItem(retryItem);
+    } catch (e) {
+      this._logError(e, "GitHubTray:showError");
+    }
+  }
+
+  // Clears the open menu and shows an in-place loading indicator.
+  // Called on manual refresh so the user gets immediate feedback while the
+  // GraphQL request is in flight.
+  showLoading(text = _("Loading...")) {
+    if (!this._indicator) return;
+    try {
+      this._currentView = "loading";
+      this._headerSection?.removeAll();
+      this._notificationsSection?.removeAll();
+      this._reposContainer?.removeAll();
+
+      const loadingItem = new PopupMenu.PopupBaseMenuItem({
+        reactive: false,
+        can_focus: false,
+        style_class: "github-tray-loading-item",
+      });
+      const box = new St.BoxLayout({
+        x_expand: true,
+        x_align: Clutter.ActorAlign.CENTER,
+        y_align: Clutter.ActorAlign.CENTER,
+        style_class: "github-tray-loading-box",
+      });
+      const spinner = new St.Icon({
+        icon_name: "content-loading-symbolic",
+        icon_size: 16,
+        style_class: "github-tray-loading-spinner",
+      });
+      const label = new St.Label({
+        text,
+        style_class: "github-tray-loading-label",
+      });
+      box.add_child(spinner);
+      box.add_child(label);
+      loadingItem.add_child(box);
+      this._reposContainer.addMenuItem(loadingItem);
+    } catch (e) {
+      this._logError(e, "GitHubTray:showLoading");
+    }
+  }
+
+  showIssuesView(repo, issues) {
+    if (!this._indicator) return;
+
+    this._currentView = "issues";
+    this._currentRepo = repo;
+
+    this._headerSection.removeAll();
+    this._reposContainer.removeAll();
+
+    const headerItem = new PopupMenu.PopupBaseMenuItem({
+      reactive: false,
+      can_focus: false,
+    });
+    const headerBox = new St.BoxLayout({
+      ...VERTICAL_LAYOUT,
+      x_expand: true,
+      style_class: "github-tray-header",
+    });
+
+    const topRow = new St.BoxLayout({
+      x_expand: true,
+      y_align: Clutter.ActorAlign.CENTER,
+    });
+
+    const backBtn = this._createBackButton();
+    topRow.add_child(backBtn);
+
+    const spacer = new St.Widget({ x_expand: true });
+    topRow.add_child(spacer);
+
+    const openInBrowserBtn = new St.Button({
+      label: _("Open in Browser"),
+      style_class: "button github-tray-link-btn-blue",
+      can_focus: true,
+    });
+    openInBrowserBtn.connect("clicked", () => {
+      try {
+        Gio.AppInfo.launch_default_for_uri(`${repo.html_url}/issues`, null);
+      } catch (e) {
+        this._logError(e, "GitHubTray:open-issues-browser");
+      }
+      this._indicator.menu.close();
+    });
+    topRow.add_child(openInBrowserBtn);
+
+    headerBox.add_child(topRow);
+
+    const titleRow = new St.BoxLayout({
+      x_expand: true,
+      style_class: "github-tray-issues-title-row",
+    });
+    const titleLabel = new St.Label({
+      text: `${repo.name} - ${_("Issues")}`,
+      style_class: "github-tray-issues-title",
+      x_expand: true,
+    });
+    titleRow.add_child(titleLabel);
+    headerBox.add_child(titleRow);
+
+    headerItem.add_child(headerBox);
+    this._headerSection.addMenuItem(headerItem);
+    this._headerSection.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+    if (!issues || issues.length === 0) {
+      this.showMessage(_("No open issues"));
+      return;
+    }
+
+    for (const issue of issues) {
+      const item = this._createIssueItem(issue, repo);
+      this._reposContainer.addMenuItem(item);
+    }
+  }
+
+  showPullRequestsView(repo, pulls) {
+    if (!this._indicator) return;
+
+    this._currentView = "pulls";
+    this._currentRepo = repo;
+
+    this._headerSection.removeAll();
+    this._reposContainer.removeAll();
+
+    const headerItem = new PopupMenu.PopupBaseMenuItem({
+      reactive: false,
+      can_focus: false,
+    });
+    const headerBox = new St.BoxLayout({
+      ...VERTICAL_LAYOUT,
+      x_expand: true,
+      style_class: "github-tray-header",
+    });
+
+    const topRow = new St.BoxLayout({
+      x_expand: true,
+      y_align: Clutter.ActorAlign.CENTER,
+    });
+
+    const backBtn = this._createBackButton();
+    topRow.add_child(backBtn);
+
+    const spacer = new St.Widget({ x_expand: true });
+    topRow.add_child(spacer);
+
+    const openInBrowserBtn = new St.Button({
+      label: _("Open in Browser"),
+      style_class: "button github-tray-link-btn-blue",
+      can_focus: true,
+    });
+    openInBrowserBtn.connect("clicked", () => {
+      try {
+        Gio.AppInfo.launch_default_for_uri(`${repo.html_url}/pulls`, null);
+      } catch (e) {
+        this._logError(e, "GitHubTray:open-pulls-browser");
+      }
+      this._indicator.menu.close();
+    });
+    topRow.add_child(openInBrowserBtn);
+
+    headerBox.add_child(topRow);
+
+    const titleRow = new St.BoxLayout({
+      x_expand: true,
+      style_class: "github-tray-issues-title-row",
+    });
+    const titleLabel = new St.Label({
+      text: `${repo.name} - ${_("Pull Requests")}`,
+      style_class: "github-tray-issues-title",
+      x_expand: true,
+    });
+    titleRow.add_child(titleLabel);
+    headerBox.add_child(titleRow);
+
+    headerItem.add_child(headerBox);
+    this._headerSection.addMenuItem(headerItem);
+    this._headerSection.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+    if (!pulls || pulls.length === 0) {
+      this.showMessage(_("No open pull requests"));
+      return;
+    }
+
+    for (const pr of pulls) {
+      const item = this._createIssueItem(pr, repo);
+      this._reposContainer.addMenuItem(item);
+    }
+  }
+
+  _createIssueItem(issue, repo) {
+    const menuItem = new PopupMenu.PopupBaseMenuItem({
+      style_class: "github-tray-issue-item",
+      can_focus: true,
+    });
+
+    const mainBox = new St.BoxLayout({
+      ...VERTICAL_LAYOUT,
+      x_expand: true,
+      style_class: "github-tray-issue-box",
+    });
+
+    const topRow = new St.BoxLayout({
+      x_expand: true,
+      y_align: Clutter.ActorAlign.CENTER,
+      style_class: "github-tray-issue-top-row",
+    });
+
+    const isOpen = issue.state === "open";
+    const stateIcon = this._makeOcticonIcon(
+      isOpen ? "issue-opened-symbolic" : "issue-closed-symbolic",
+      `github-tray-issue-state-icon ${isOpen ? "octicon-issue-open" : "octicon-issue-closed"}`,
+    );
+    topRow.add_child(stateIcon);
+
+    const issueNumber = new St.Label({
+      text: `#${issue.number}`,
+      style_class: "github-tray-issue-number",
+    });
+    topRow.add_child(issueNumber);
+
+    const titleBtn = new St.Button({
+      label: issue.title,
+      style_class: "button github-tray-issue-title",
+      can_focus: true,
+      x_expand: true,
+      x_align: Clutter.ActorAlign.START,
+    });
+    const titleBtnChild = titleBtn.get_child();
+    if (titleBtnChild && titleBtnChild.clutter_text) {
+      titleBtnChild.clutter_text.set_ellipsize(3);
+    }
+    titleBtn.connect("clicked", () => {
+      try {
+        Gio.AppInfo.launch_default_for_uri(issue.html_url, null);
+      } catch (e) {
+        this._logError(e, "GitHubTray:open-issue");
+      }
+      this._indicator.menu.close();
+    });
+    topRow.add_child(titleBtn);
+
+    mainBox.add_child(topRow);
+
+    if (issue.labels && issue.labels.length > 0) {
+      const labelsRow = new St.BoxLayout({
+        x_expand: true,
+        style_class: "github-tray-issue-labels-row",
+      });
+      for (const label of issue.labels.slice(0, 4)) {
+        const labelBox = new St.Label({
+          text: label.name,
+          style_class: "github-tray-issue-label",
+          style: `color: #${label.color};border: 1px solid #${label.color};background-color:rgba(0,0,0,0);`,
+        });
+        labelsRow.add_child(labelBox);
+      }
+      if (issue.labels.length > 4) {
+        const moreLabel = new St.Label({
+          text: `+${issue.labels.length - 4}`,
+          style_class: "github-tray-issue-label-more",
+        });
+        labelsRow.add_child(moreLabel);
+      }
+      mainBox.add_child(labelsRow);
+    }
+
+    const metaRow = new St.BoxLayout({
+      x_expand: true,
+      style_class: "github-tray-issue-meta-row",
+    });
+
+    if (issue.user) {
+      const authorLabel = new St.Label({
+        text: `@${issue.user.login}`,
+        style_class: "github-tray-issue-author",
+      });
+      metaRow.add_child(authorLabel);
+    }
+
+    const spacer = new St.Widget({ x_expand: true });
+    metaRow.add_child(spacer);
+
+    const updatedStr = relativeTime(issue.updated_at);
+    const updatedLabel = new St.Label({
+      text: updatedStr,
+      style_class: "github-tray-issue-updated",
+    });
+    metaRow.add_child(updatedLabel);
+
+    mainBox.add_child(metaRow);
+
+    menuItem.add_child(mainBox);
+
+    menuItem.connect("activate", () => {
+      try {
+        Gio.AppInfo.launch_default_for_uri(issue.html_url, null);
+      } catch (e) {
+        this._logError(e, "GitHubTray:open-issue-activate");
+      }
+      this._indicator.menu.close();
+    });
+
+    return menuItem;
+  }
+
+  showWorkflowRunsView(repo, workflowRuns) {
+    this._debugLog(
+      `[GitHubTray UI] showWorkflowRunsView called for ${repo.name} with ${workflowRuns ? workflowRuns.length : 0} workflow runs`,
+    );
+
+    if (!this._indicator) return;
+
+    this._currentView = "workflow-runs";
+    this._currentRepo = repo;
+
+    this._headerSection.removeAll();
+    this._reposContainer.removeAll();
+
+    const headerItem = new PopupMenu.PopupBaseMenuItem({
+      reactive: false,
+      can_focus: false,
+    });
+    const headerBox = new St.BoxLayout({
+      ...VERTICAL_LAYOUT,
+      x_expand: true,
+      style_class: "github-tray-header",
+    });
+
+    const topRow = new St.BoxLayout({
+      x_expand: true,
+      y_align: Clutter.ActorAlign.CENTER,
+    });
+
+    const backBtn = this._createBackButton();
+    topRow.add_child(backBtn);
+
+    const spacer = new St.Widget({ x_expand: true });
+    topRow.add_child(spacer);
+
+    const openInBrowserBtn = new St.Button({
+      label: _("Open in Browser"),
+      style_class: "button github-tray-link-btn-blue",
+      can_focus: true,
+    });
+    openInBrowserBtn.connect("clicked", () => {
+      try {
+        Gio.AppInfo.launch_default_for_uri(`${repo.html_url}/actions`, null);
+      } catch (e) {
+        this._logError(e, "GitHubTray:open-actions-browser");
+      }
+      this._indicator.menu.close();
+    });
+    topRow.add_child(openInBrowserBtn);
+
+    headerBox.add_child(topRow);
+
+    const titleRow = new St.BoxLayout({
+      x_expand: true,
+      style_class: "github-tray-workflow-title-row",
+    });
+    const titleLabel = new St.Label({
+      text: `${repo.name} - ${_("Workflow Runs")}`,
+      style_class: "github-tray-workflow-title",
+      x_expand: true,
+    });
+    titleRow.add_child(titleLabel);
+    headerBox.add_child(titleRow);
+
+    headerItem.add_child(headerBox);
+    this._headerSection.addMenuItem(headerItem);
+    this._headerSection.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+    if (!workflowRuns || workflowRuns.length === 0) {
+      this._debugLog(`[GitHubTray UI] No workflow runs to display`);
+      this.showMessage(_("No workflow runs found"));
+      return;
+    }
+
+    this._debugLog(
+      `[GitHubTray UI] Creating ${workflowRuns.length} workflow run items`,
+    );
+    for (const run of workflowRuns) {
+      const item = this._createWorkflowRunItem(run);
+      this._reposContainer.addMenuItem(item);
+    }
+  }
+
+  showReposView() {
+    if (this._cachedRepos && this._cachedUsername) {
+      this.updateMenu(
+        this._cachedRepos,
+        this._cachedUsername,
+        this._cachedUserInfo,
+        this._cachedNotifications,
+      );
+    }
+  }
+
+  refreshNotifications(notifications) {
+    this._cachedNotifications = notifications;
+
+    // Update the notifications container in-place if available
+    if (this._notificationsContainer) {
+      const unreadNotifications = notifications.filter((n) => n.unread);
+      const totalPages = Math.ceil(
+        unreadNotifications.length / NOTIFICATIONS_PAGE_SIZE,
+      );
+
+      // Clamp page after mark-as-read may have reduced total pages
+      if (totalPages > 0 && this._notificationsPage >= totalPages) {
+        this._notificationsPage = totalPages - 1;
+      }
+
+      const start = this._notificationsPage * NOTIFICATIONS_PAGE_SIZE;
+      const displayNotifications = unreadNotifications.slice(
+        start,
+        start + NOTIFICATIONS_PAGE_SIZE,
+      );
+
+      this._notificationsContainer.removeAll();
+      for (const notification of displayNotifications) {
+        const item = this._createNotificationItem(notification);
+        this._notificationsContainer.addMenuItem(item);
+      }
+
+      // Keep pager controls in sync after a notification is marked as read
+      this._updatePagerControls(this._notificationsPagerItem, totalPages);
+      return;
+    }
+
+    // Fallback: re-render the whole menu
+    if (this._cachedRepos && this._cachedUsername) {
+      this.updateMenu(
+        this._cachedRepos,
+        this._cachedUsername,
+        this._cachedUserInfo,
+        notifications,
+      );
+    }
+  }
+}

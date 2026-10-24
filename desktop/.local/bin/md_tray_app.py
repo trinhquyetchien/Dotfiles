@@ -13,7 +13,7 @@ import subprocess
 gi.require_version('Gtk', '3.0')
 gi.require_version('WebKit2', '4.1')
 gi.require_version('AyatanaAppIndicator3', '0.1')
-from gi.repository import Gtk, WebKit2, GLib, AyatanaAppIndicator3
+from gi.repository import Gtk, WebKit2, GLib, AyatanaAppIndicator3, Pango
 
 try:
     from markdown_it import MarkdownIt
@@ -108,6 +108,244 @@ class AddMenuDialog(Gtk.Dialog):
         self.show_all()
 
 
+class DeleteMenuDialog(Gtk.Dialog):
+    def __init__(self, parent=None, custom_menus=None):
+        super().__init__(title="Delete Menu", transient_for=parent, flags=0)
+        self.add_buttons(
+            Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+            "Delete", Gtk.ResponseType.OK
+        )
+        self.set_default_size(380, 160)
+        self.custom_menus = custom_menus or []
+        
+        box = self.get_content_area()
+        box.set_spacing(10)
+        box.set_margin_top(15)
+        box.set_margin_bottom(15)
+        box.set_margin_start(15)
+        box.set_margin_end(15)
+        
+        lbl = Gtk.Label(label="Select the custom menu you want to delete:", xalign=0)
+        box.pack_start(lbl, False, False, 0)
+        
+        self.combo = Gtk.ComboBoxText()
+        for idx, m in enumerate(self.custom_menus):
+            self.combo.append(str(idx), f"{m.get('name', 'Menu')} ({m.get('path', '')})")
+        if self.custom_menus:
+            self.combo.set_active(0)
+            
+        box.pack_start(self.combo, False, False, 0)
+        
+        lbl_hint = Gtk.Label(xalign=0)
+        lbl_hint.set_markup("<small>Note: This only removes the menu from the tray. Files inside the folder will not be deleted.</small>")
+        lbl_hint.set_line_wrap(True)
+        box.pack_start(lbl_hint, False, False, 0)
+        
+        self.show_all()
+
+    def get_selected_index(self):
+        active_id = self.combo.get_active_id()
+        if active_id is not None:
+            return int(active_id)
+        return -1
+
+
+class EditPathsDialog(Gtk.Dialog):
+    def __init__(self, parent=None, daily_dir="", daily_alias="", deadline_file="", deadline_alias="", custom_menus=None, deadline_dir="", calendar_file=""):
+        super().__init__(title="Edit Paths", transient_for=parent, flags=0)
+        self.add_buttons(
+            Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+            Gtk.STOCK_SAVE, Gtk.ResponseType.OK
+        )
+        self.set_default_size(540, 480)
+        self.custom_menus = [dict(m) for m in (custom_menus or [])]
+        deadline_target = deadline_file or deadline_dir
+        
+        box = self.get_content_area()
+        box.set_spacing(10)
+        box.set_margin_top(15)
+        box.set_margin_bottom(15)
+        box.set_margin_start(15)
+        box.set_margin_end(15)
+        
+        grid = Gtk.Grid()
+        grid.set_column_spacing(12)
+        grid.set_row_spacing(10)
+        grid.set_hexpand(True)
+        
+        # Section Daily
+        lbl_daily_sec = Gtk.Label(xalign=0)
+        lbl_daily_sec.set_markup("<b>Daily Notes:</b>")
+        grid.attach(lbl_daily_sec, 0, 0, 3, 1)
+        
+        lbl_d_alias = Gtk.Label(label="Alias:", xalign=0)
+        lbl_d_alias.set_width_chars(8)
+        self.entry_daily_alias = Gtk.Entry()
+        self.entry_daily_alias.set_text(daily_alias or "Daily List")
+        self.entry_daily_alias.set_placeholder_text("e.g. Daily List")
+        self.entry_daily_alias.set_hexpand(True)
+        self.entry_daily_alias.set_activates_default(True)
+        grid.attach(lbl_d_alias, 0, 1, 1, 1)
+        grid.attach(self.entry_daily_alias, 1, 1, 2, 1)
+        
+        lbl_d_path = Gtk.Label(label="Path:", xalign=0)
+        lbl_d_path.set_width_chars(8)
+        self.btn_daily_folder = Gtk.FileChooserButton(title="Select Daily Folder", action=Gtk.FileChooserAction.SELECT_FOLDER)
+        if daily_dir and os.path.exists(daily_dir):
+            self.btn_daily_folder.set_current_folder(daily_dir)
+        self.btn_daily_folder.set_hexpand(True)
+        grid.attach(lbl_d_path, 0, 2, 1, 1)
+        grid.attach(self.btn_daily_folder, 1, 2, 2, 1)
+        
+        # Separator
+        sep1 = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        grid.attach(sep1, 0, 3, 3, 1)
+        
+        # Section Deadline
+        lbl_dl_sec = Gtk.Label(xalign=0)
+        lbl_dl_sec.set_markup("<b>Deadline Note:</b>")
+        grid.attach(lbl_dl_sec, 0, 4, 3, 1)
+        
+        lbl_dl_alias = Gtk.Label(label="Alias:", xalign=0)
+        lbl_dl_alias.set_width_chars(8)
+        self.entry_deadline_alias = Gtk.Entry()
+        self.entry_deadline_alias.set_text(deadline_alias or "Deadline")
+        self.entry_deadline_alias.set_placeholder_text("e.g. Deadline")
+        self.entry_deadline_alias.set_hexpand(True)
+        self.entry_deadline_alias.set_activates_default(True)
+        grid.attach(lbl_dl_alias, 0, 5, 1, 1)
+        grid.attach(self.entry_deadline_alias, 1, 5, 2, 1)
+        
+        lbl_dl_path = Gtk.Label(label="Path:", xalign=0)
+        lbl_dl_path.set_width_chars(8)
+        self.btn_deadline_file = Gtk.FileChooserButton(title="Select Deadline File", action=Gtk.FileChooserAction.OPEN)
+        f_md = Gtk.FileFilter()
+        f_md.set_name("Markdown files (*.md)")
+        f_md.add_pattern("*.md")
+        self.btn_deadline_file.add_filter(f_md)
+        f_all = Gtk.FileFilter()
+        f_all.set_name("All files (*.*)")
+        f_all.add_pattern("*")
+        self.btn_deadline_file.add_filter(f_all)
+        self.btn_deadline_file.set_filter(f_md)
+
+        if deadline_target:
+            if os.path.isdir(deadline_target):
+                c_cap = os.path.join(deadline_target, "Deadline.md")
+                c_low = os.path.join(deadline_target, "deadline.md")
+                deadline_target = c_cap if os.path.exists(c_cap) or not os.path.exists(c_low) else c_low
+            if os.path.exists(deadline_target):
+                self.btn_deadline_file.set_filename(deadline_target)
+            else:
+                d = os.path.dirname(deadline_target)
+                if os.path.exists(d):
+                    self.btn_deadline_file.set_current_folder(d)
+        self.btn_deadline_file.set_hexpand(True)
+        self.btn_deadline_folder = self.btn_deadline_file
+        grid.attach(lbl_dl_path, 0, 6, 1, 1)
+        grid.attach(self.btn_deadline_file, 1, 6, 2, 1)
+
+        # Separator Calendar
+        sep2 = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        grid.attach(sep2, 0, 7, 3, 1)
+
+        # Section Calendar
+        lbl_cal_sec = Gtk.Label(xalign=0)
+        lbl_cal_sec.set_markup("<b>Calendar Data:</b>")
+        grid.attach(lbl_cal_sec, 0, 8, 3, 1)
+
+        lbl_cal_path = Gtk.Label(label="Path:", xalign=0)
+        lbl_cal_path.set_width_chars(8)
+        self.btn_calendar_file = Gtk.FileChooserButton(title="Select Calendar JSON File", action=Gtk.FileChooserAction.OPEN)
+        f_json = Gtk.FileFilter()
+        f_json.set_name("JSON files (*.json)")
+        f_json.add_pattern("*.json")
+        self.btn_calendar_file.add_filter(f_json)
+        self.btn_calendar_file.add_filter(f_all)
+        self.btn_calendar_file.set_filter(f_json)
+
+        if calendar_file:
+            if os.path.exists(calendar_file):
+                self.btn_calendar_file.set_filename(calendar_file)
+            else:
+                cdir = os.path.dirname(calendar_file)
+                if os.path.exists(cdir):
+                    self.btn_calendar_file.set_current_folder(cdir)
+        self.btn_calendar_file.set_hexpand(True)
+        grid.attach(lbl_cal_path, 0, 9, 1, 1)
+        grid.attach(self.btn_calendar_file, 1, 9, 2, 1)
+        
+        box.pack_start(grid, False, False, 0)
+        
+        # Section Custom Menus
+        self.custom_entries = []
+        if self.custom_menus:
+            sep2 = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+            box.pack_start(sep2, False, False, 4)
+            
+            lbl_custom = Gtk.Label(xalign=0)
+            lbl_custom.set_markup("<b>Custom Added Menus (Alias &amp; Path):</b>")
+            box.pack_start(lbl_custom, False, False, 0)
+            
+            scrolled = Gtk.ScrolledWindow()
+            scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+            scrolled.set_min_content_height(110)
+            
+            c_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+            c_box.set_margin_start(4)
+            c_box.set_margin_end(4)
+            c_box.set_margin_top(4)
+            c_box.set_margin_bottom(4)
+            
+            for item in self.custom_menus:
+                row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+                
+                entry_name = Gtk.Entry()
+                entry_name.set_text(item.get('name', 'Menu'))
+                entry_name.set_placeholder_text("Menu Alias")
+                entry_name.set_width_chars(14)
+                entry_name.set_activates_default(True)
+                
+                btn_folder = Gtk.FileChooserButton(title="Select Folder", action=Gtk.FileChooserAction.SELECT_FOLDER)
+                fpath = item.get('path', '')
+                if fpath and os.path.exists(fpath):
+                    btn_folder.set_current_folder(fpath)
+                btn_folder.set_hexpand(True)
+                
+                btn_del = Gtk.Button(label="✕")
+                btn_del.set_tooltip_text("Delete menu")
+                def on_del(b, target=item, r=row):
+                    if target in self.custom_menus:
+                        self.custom_menus.remove(target)
+                    r.destroy()
+                btn_del.connect("clicked", on_del)
+                
+                row.pack_start(entry_name, False, False, 0)
+                row.pack_start(btn_folder, True, True, 0)
+                row.pack_start(btn_del, False, False, 0)
+                c_box.pack_start(row, False, False, 0)
+                self.custom_entries.append((item, entry_name, btn_folder, row))
+                
+            scrolled.add(c_box)
+            box.pack_start(scrolled, True, True, 0)
+            
+        self.set_default_response(Gtk.ResponseType.OK)
+        self.show_all()
+
+    def get_updated_custom_menus(self):
+        updated = []
+        if hasattr(self, 'custom_entries') and self.custom_entries:
+            for item, entry_name, btn_folder, row in self.custom_entries:
+                if row.get_parent() is not None:
+                    name = entry_name.get_text().strip() or item.get('name', 'Menu')
+                    path = btn_folder.get_filename() or item.get('path', '')
+                    if name and path:
+                        updated.append({"name": name, "path": path})
+        else:
+            updated = self.custom_menus
+        return updated
+
+
 class MarkdownTrayApp:
     def __init__(self):
         self.config_dir = os.path.expanduser("~/.config/md-tray-app")
@@ -116,15 +354,14 @@ class MarkdownTrayApp:
         self.calendar_events = []
         self.load_config()
         self.load_calendar()
-        
-        if not os.path.exists(self.daily_dir):
-            os.makedirs(self.daily_dir, exist_ok=True)
+        self.ensure_directories()
             
         self.window = None
         self.calendar_window = None
         self.md_parser = MarkdownIt("commonmark", {"html": True})
         self.current_filepath = self.get_today_filepath()
         self.setup_window_icons()
+        self.menu = Gtk.Menu()
         self.setup_indicator()
         self.notified_events = set()
         GLib.timeout_add_seconds(60, self.check_alarms)
@@ -164,7 +401,10 @@ class MarkdownTrayApp:
                 try:
                     anchor_date = datetime.datetime.strptime(ev_date, "%Y-%m-%d").date()
                     if now.date() >= anchor_date and js_weekday in repeat_days:
-                        is_today = True
+                        if current_date_str not in ev.get("exceptionDates", []):
+                            until_date = ev.get("untilDate")
+                            if not until_date or current_date_str < until_date:
+                                is_today = True
                 except ValueError:
                     pass
             else:
@@ -192,9 +432,29 @@ class MarkdownTrayApp:
         except Exception as e:
             print("Failed to send notification:", e)
 
+    @property
+    def deadline_dir(self):
+        return os.path.dirname(self.deadline_file) if getattr(self, 'deadline_file', None) else ""
+
+    @deadline_dir.setter
+    def deadline_dir(self, val):
+        if val and os.path.isdir(val):
+            c_cap = os.path.join(val, "Deadline.md")
+            c_low = os.path.join(val, "deadline.md")
+            self.deadline_file = c_cap if os.path.exists(c_cap) or not os.path.exists(c_low) else c_low
+        else:
+            self.deadline_file = val
+
     def load_config(self):
-        default_dir = os.path.expanduser("~/Note/Daily")
-        self.daily_dir = default_dir
+        default_daily = os.path.expanduser("~/Note/Daily")
+        default_deadline = os.path.expanduser("~/Note/Deadline/Deadline.md")
+        default_calendar = os.path.expanduser("~/Note/calendar.json")
+        legacy_calendar = os.path.join(self.config_dir, "calendar.json")
+        self.daily_dir = default_daily
+        self.daily_alias = "Daily List"
+        self.deadline_file = default_deadline
+        self.deadline_alias = "Deadline"
+        self.calendar_file = default_calendar
         self.custom_menus = []
         
         if os.path.exists(self.config_file):
@@ -205,10 +465,35 @@ class MarkdownTrayApp:
                     if "note_dir" in config:
                         self.daily_dir = config["note_dir"]
                     else:
-                        self.daily_dir = config.get("daily_dir", default_dir)
+                        self.daily_dir = config.get("daily_dir", default_daily)
+                    self.daily_alias = config.get("daily_alias", "Daily List")
+                    
+                    # Support deadline_file (new), deadline_path, and deadline_dir (legacy)
+                    dl_val = config.get("deadline_file") or config.get("deadline_path") or config.get("deadline_dir")
+                    if dl_val:
+                        if os.path.isdir(dl_val):
+                            c_cap = os.path.join(dl_val, "Deadline.md")
+                            c_low = os.path.join(dl_val, "deadline.md")
+                            self.deadline_file = c_cap if os.path.exists(c_cap) or not os.path.exists(c_low) else c_low
+                        else:
+                            self.deadline_file = dl_val
+                    else:
+                        self.deadline_file = default_deadline
+                    
+                    self.deadline_alias = config.get("deadline_alias", "Deadline")
+                    self.calendar_file = config.get("calendar_file", default_calendar)
                     self.custom_menus = config.get("custom_menus", [])
             except Exception as e:
                 print("Error loading config:", e)
+
+        # Migrate legacy calendar from ~/.config/md-tray-app/calendar.json to ~/Note/calendar.json
+        if not os.path.exists(self.calendar_file) and os.path.exists(legacy_calendar):
+            try:
+                import shutil
+                os.makedirs(os.path.dirname(self.calendar_file), exist_ok=True)
+                shutil.copy2(legacy_calendar, self.calendar_file)
+            except Exception as e:
+                print("Error migrating calendar file:", e)
 
     def save_config(self):
         if not os.path.exists(self.config_dir):
@@ -216,23 +501,45 @@ class MarkdownTrayApp:
         with open(self.config_file, "w") as f:
             json.dump({
                 "daily_dir": self.daily_dir,
+                "daily_alias": self.daily_alias,
+                "deadline_file": self.deadline_file,
+                "deadline_alias": self.deadline_alias,
+                "calendar_file": self.calendar_file,
                 "custom_menus": self.custom_menus
-            }, f)
+            }, f, indent=2)
+
+    def ensure_directories(self):
+        os.makedirs(self.daily_dir, exist_ok=True)
+        if self.deadline_file:
+            d_dir = os.path.dirname(self.deadline_file)
+            if d_dir:
+                os.makedirs(d_dir, exist_ok=True)
+            if not os.path.exists(self.deadline_file) or os.path.getsize(self.deadline_file) == 0:
+                try:
+                    with open(self.deadline_file, "w", encoding="utf-8") as f:
+                        f.write("# Deadlines\n\n- [ ] Important deadline\n")
+                except Exception as e:
+                    print("Error creating initial deadline note:", e)
+        if self.calendar_file:
+            cal_dir = os.path.dirname(self.calendar_file)
+            if cal_dir:
+                os.makedirs(cal_dir, exist_ok=True)
 
     def load_calendar(self):
         if os.path.exists(self.calendar_file):
             try:
-                with open(self.calendar_file, "r") as f:
+                with open(self.calendar_file, "r", encoding="utf-8") as f:
                     self.calendar_events = json.load(f)
             except Exception as e:
                 print("Error loading calendar:", e)
 
     def save_calendar(self):
-        if not os.path.exists(self.config_dir):
-            os.makedirs(self.config_dir, exist_ok=True)
+        cal_dir = os.path.dirname(self.calendar_file)
+        if cal_dir and not os.path.exists(cal_dir):
+            os.makedirs(cal_dir, exist_ok=True)
         try:
-            with open(self.calendar_file, "w") as f:
-                json.dump(self.calendar_events, f)
+            with open(self.calendar_file, "w", encoding="utf-8") as f:
+                json.dump(self.calendar_events, f, indent=2)
         except Exception as e:
             print("Error saving calendar:", e)
 
@@ -251,12 +558,17 @@ class MarkdownTrayApp:
         self.menu = self.build_menu()
         self.indicator.set_menu(self.menu)
 
-    def create_folder_submenu(self, folder_path):
+    def create_folder_submenu(self, folder_path, custom_menu_obj=None):
         submenu = Gtk.Menu()
         if not os.path.exists(folder_path):
             empty_item = Gtk.MenuItem(label="Folder not found")
             empty_item.set_sensitive(False)
             submenu.append(empty_item)
+            if custom_menu_obj is not None:
+                submenu.append(Gtk.SeparatorMenuItem())
+                item_del = Gtk.MenuItem(label="🗑 Delete this menu")
+                item_del.connect('activate', lambda w, m=custom_menu_obj: self.on_delete_single_custom_menu(m))
+                submenu.append(item_del)
             return submenu
             
         files = glob.glob(os.path.join(folder_path, "*.md"))
@@ -272,10 +584,22 @@ class MarkdownTrayApp:
                 item_file = Gtk.MenuItem(label=fname)
                 item_file.connect('activate', lambda w, p=fpath: self.switch_file(p))
                 submenu.append(item_file)
+                
+        if custom_menu_obj is not None:
+            submenu.append(Gtk.SeparatorMenuItem())
+            item_del = Gtk.MenuItem(label="🗑 Delete this menu")
+            item_del.connect('activate', lambda w, m=custom_menu_obj: self.on_delete_single_custom_menu(m))
+            submenu.append(item_del)
+            
         return submenu
 
     def build_menu(self):
-        menu = Gtk.Menu()
+        if not hasattr(self, 'menu') or self.menu is None:
+            self.menu = Gtk.Menu()
+        else:
+            for child in self.menu.get_children():
+                self.menu.remove(child)
+        menu = self.menu
         
         # Today
         item_today = Gtk.MenuItem(label="Today")
@@ -287,22 +611,27 @@ class MarkdownTrayApp:
         item_calendar.connect('activate', self.on_show_calendar)
         menu.append(item_calendar)
         
+        # Deadline
+        item_deadline = Gtk.MenuItem(label=self.deadline_alias or "Deadline")
+        item_deadline.connect('activate', lambda w: self.show_deadline_note())
+        menu.append(item_deadline)
+        
         # Daily List
         daily_menu = self.create_folder_submenu(self.daily_dir)
-        item_daily = Gtk.MenuItem(label="Daily List")
+        item_daily = Gtk.MenuItem(label=self.daily_alias or "Daily List")
         item_daily.set_submenu(daily_menu)
         menu.append(item_daily)
         
-        # Edit Path Daily
-        item_edit_daily = Gtk.MenuItem(label="Edit Path Daily")
-        item_edit_daily.connect('activate', self.on_change_daily_directory)
-        menu.append(item_edit_daily)
+        # Edit Paths
+        item_edit_paths = Gtk.MenuItem(label="Edit Paths")
+        item_edit_paths.connect('activate', self.on_edit_paths)
+        menu.append(item_edit_paths)
         
         menu.append(Gtk.SeparatorMenuItem())
         
         # Custom Menus
         for cmenu in self.custom_menus:
-            submenu = self.create_folder_submenu(cmenu["path"])
+            submenu = self.create_folder_submenu(cmenu["path"], custom_menu_obj=cmenu)
             item = Gtk.MenuItem(label=cmenu["name"])
             item.set_submenu(submenu)
             menu.append(item)
@@ -315,34 +644,97 @@ class MarkdownTrayApp:
         item_add_menu.connect('activate', self.on_add_menu)
         menu.append(item_add_menu)
         
+        # Delete Menu
+        item_delete_menu = Gtk.MenuItem(label="Delete Menu")
+        if self.custom_menus:
+            item_delete_menu.connect('activate', self.on_delete_menu)
+        else:
+            item_delete_menu.set_sensitive(False)
+        menu.append(item_delete_menu)
+        
         menu.show_all()
         return menu
 
-    def on_change_daily_directory(self, item):
-        dialog = Gtk.FileChooserDialog(
-            title="Choose folder for Daily Notes",
-            parent=None,
-            action=Gtk.FileChooserAction.SELECT_FOLDER
+    def on_edit_paths(self, item):
+        dialog = EditPathsDialog(
+            daily_dir=self.daily_dir,
+            daily_alias=self.daily_alias,
+            deadline_file=self.deadline_file,
+            deadline_alias=self.deadline_alias,
+            calendar_file=self.calendar_file,
+            custom_menus=self.custom_menus
         )
-        dialog.add_buttons(
-            Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-            Gtk.STOCK_OPEN, Gtk.ResponseType.OK
-        )
-        dialog.set_current_folder(self.daily_dir)
         dialog.set_keep_above(True)
-        
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
-            new_dir = dialog.get_filename()
-            self.daily_dir = new_dir
+            new_daily = dialog.btn_daily_folder.get_filename() or self.daily_dir
+            new_daily_alias = dialog.entry_daily_alias.get_text().strip() or "Daily List"
+            new_deadline = dialog.btn_deadline_file.get_filename() or self.deadline_file
+            new_deadline_alias = dialog.entry_deadline_alias.get_text().strip() or "Deadline"
+            new_calendar = dialog.btn_calendar_file.get_filename() or self.calendar_file
+            
+            self.daily_dir = new_daily
+            self.daily_alias = new_daily_alias
+            self.deadline_file = new_deadline
+            self.deadline_alias = new_deadline_alias
+            self.calendar_file = new_calendar
+            self.custom_menus = dialog.get_updated_custom_menus()
+            
+            self.ensure_directories()
+            self.load_calendar()
             self.save_config()
-            self.current_filepath = self.get_today_filepath()
-            self.menu = self.build_menu()
-            self.indicator.set_menu(self.menu)
+            if not os.path.exists(self.current_filepath):
+                self.current_filepath = self.get_today_filepath()
+            self.build_menu()
             if self.window and self.window.get_visible():
-                self.window.set_title(f"Notes - {os.path.basename(self.current_filepath)}")
+                self.update_window_title()
                 self.update_webview()
                 
+        dialog.destroy()
+
+    def on_delete_single_custom_menu(self, cmenu):
+        dialog = Gtk.MessageDialog(
+            transient_for=None,
+            flags=0,
+            message_type=Gtk.MessageType.QUESTION,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text=f"Delete menu '{cmenu.get('name')}'?"
+        )
+        dialog.format_secondary_text("This will only remove the menu from Markdown Tray. Your files in the folder will NOT be deleted.")
+        dialog.set_keep_above(True)
+        response = dialog.run()
+        dialog.destroy()
+        
+        if response == Gtk.ResponseType.YES:
+            if cmenu in self.custom_menus:
+                self.custom_menus.remove(cmenu)
+                self.save_config()
+                self.build_menu()
+
+    def on_delete_menu(self, item):
+        if not self.custom_menus:
+            dialog = Gtk.MessageDialog(
+                transient_for=None,
+                flags=0,
+                message_type=Gtk.MessageType.INFO,
+                buttons=Gtk.ButtonsType.OK,
+                text="No Custom Menus"
+            )
+            dialog.format_secondary_text("There are no custom added menus to delete.")
+            dialog.set_keep_above(True)
+            dialog.run()
+            dialog.destroy()
+            return
+
+        dialog = DeleteMenuDialog(custom_menus=self.custom_menus)
+        dialog.set_keep_above(True)
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            idx = dialog.get_selected_index()
+            if 0 <= idx < len(self.custom_menus):
+                del self.custom_menus[idx]
+                self.save_config()
+                self.build_menu()
         dialog.destroy()
 
     def on_add_menu(self, item):
@@ -360,10 +752,23 @@ class MarkdownTrayApp:
                     "path": folder
                 })
                 self.save_config()
-                self.menu = self.build_menu()
-                self.indicator.set_menu(self.menu)
+                self.build_menu()
                 
         dialog.destroy()
+
+    def show_deadline_note(self):
+        if not self.deadline_file:
+            return
+        if not os.path.exists(self.deadline_file) or os.path.getsize(self.deadline_file) == 0:
+            try:
+                d_dir = os.path.dirname(self.deadline_file)
+                if d_dir:
+                    os.makedirs(d_dir, exist_ok=True)
+                with open(self.deadline_file, "w", encoding="utf-8") as f:
+                    f.write("# Deadlines\n\n- [ ] Example deadline task\n")
+            except Exception as e:
+                print("Error creating deadline note:", e)
+        self.switch_file(self.deadline_file)
 
     def show_today_note(self):
         today_file = self.get_today_filepath()
@@ -386,14 +791,22 @@ class MarkdownTrayApp:
                 return
             
         self.current_filepath = filepath
-        if self.window:
-            self.window.set_title(f"Notes - {os.path.basename(self.current_filepath)}")
+        self.update_window_title()
         self.show_preview()
+
+    def update_window_title(self):
+        if not self.window or not self.current_filepath:
+            return
+        if self.current_filepath == self.deadline_file:
+            self.window.set_title(f"Notes - {self.deadline_alias or 'Deadline'}")
+        elif self.current_filepath == self.get_today_filepath():
+            self.window.set_title(f"Notes - Today ({os.path.basename(self.current_filepath).replace('.md', '')})")
+        else:
+            self.window.set_title(f"Notes - {os.path.basename(self.current_filepath)}")
 
     def show_preview(self):
         if not self.window:
             self.window = Gtk.Window()
-            self.window.set_title(f"Notes - {os.path.basename(self.current_filepath)}")
             self.window.set_default_size(500, 700)
             self.window.connect("delete-event", self.on_window_delete)
             
@@ -404,6 +817,7 @@ class MarkdownTrayApp:
             self.webview = WebKit2.WebView.new_with_user_content_manager(manager)
             self.window.add(self.webview)
             
+        self.update_window_title()
         self.update_webview()
         self.window.show_all()
         self.window.present()
@@ -432,8 +846,7 @@ class MarkdownTrayApp:
         full_html = HTML_TEMPLATE.format(css=CSS, content=html_content, handler="task_toggled")
         self.webview.load_html(full_html, "file:///")
         
-        self.menu = self.build_menu()
-        self.indicator.set_menu(self.menu)
+        self.build_menu()
 
     def on_task_toggled(self, manager, message):
         try:
@@ -667,5 +1080,7 @@ if __name__ == "__main__":
         GLib.idle_add(app.on_show_calendar, None)
     elif "--task" in sys.argv or "--today" in sys.argv:
         GLib.idle_add(app.show_today_note)
+    elif "--deadline" in sys.argv:
+        GLib.idle_add(app.show_deadline_note)
         
     Gtk.main()

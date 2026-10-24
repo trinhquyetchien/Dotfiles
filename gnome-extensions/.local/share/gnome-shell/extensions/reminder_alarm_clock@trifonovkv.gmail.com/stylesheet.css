@@ -1,0 +1,173 @@
+.rac-top-row {
+    margin: 4px;
+}
+
+.rac-time-label {
+    border-radius: 6px;
+    border-width: 1px;
+    box-shadow: none;
+    margin: 2px 4px;
+    padding: 6px 12px;
+    background-color: #eeeeec;
+    color: #1e1e1e;
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.rac-action-button {
+    border-radius: 6px;
+    border-width: 1px;
+    box-shadow: none;
+    border-color: #6e6e6e;
+    margin: 2px 4px;
+    padding: 6px 14px;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.rac-add-button {
+    border-radius: 6px;
+    border-width: 1px;
+    box-shadow: none;
+    border-color: #1c71d8;
+    margin: 2px 4px;
+    padding: 6px 14px;
+    font-size: 20px;
+    font-weight: bold;
+    background-color: #3584e4;
+    color: #ffffff;
+}
+
+.rac-add-button:hover {
+    background-color: #1c71d8;
+}
+
+.rac-minutes-button {
+    border-radius: 5px;
+    border-width: 1px;
+    box-shadow: none;
+    border-color: #6e6e6e;
+    margin: 3px;
+    padding: 8px 10px;
+    font-size: 20px;
+}
+
+.rac-message-entry {
+    border-radius: 6px;
+    margin: 10px 4px 6px 4px;
+    border: solid 1px #5e5c64;
+    font-size: 15px;
+    padding: 6px 8px;
+    /* don't allow resize entry by content */
+    max-width: 1px; 
+}
+
+.rac-section-header-box {
+    margin: 10px 4px 4px 4px;
+}
+
+.rac-section-header {
+    font-size: 12px;
+    font-weight: bold;
+    color: #9a9996;
+    text-transform: uppercase;
+}
+
+.rac-clear-all-btn {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: #f66151;
+}
+
+.rac-clear-all-btn:hover {
+    background-color: rgba(246, 97, 81, 0.2);
+}
+
+.rac-scroll-view {
+    max-height: 160px;
+    margin: 2px 4px;
+}
+
+.rac-reminders-list {
+    margin: 2px 0;
+}
+
+.rac-reminder-row {
+    margin: 2px 0;
+    padding: 4px 8px;
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.rac-reminder-time {
+    font-weight: bold;
+    font-size: 13px;
+    color: #78aeed;
+    margin-right: 8px;
+}
+
+.rac-reminder-text {
+    font-size: 13px;
+    color: #eeeeec;
+}
+
+.rac-reminder-del-btn {
+    padding: 2px 6px;
+    margin-left: 6px;
+    border-radius: 4px;
+    color: #f66151;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.rac-reminder-del-btn:hover {
+    background-color: rgba(246, 97, 81, 0.3);
+}
+
+.rac-empty-label {
+    font-size: 12px;
+    color: #888888;
+    text-align: center;
+    margin: 8px 0;
+}
+
+.rac-message-label {
+    font-size: 64px;
+    font-weight: bold;
+    color: #eeeeec;
+    background-color: #3f3e40;
+    padding: .3em;
+}
+
+.rac-message-label-with-border {
+    font-size: 64px;
+    font-weight: bold;
+    color: #eeeeec;
+    background-color: #3f3e40;
+    border: solid 1px #eeeeec;
+    border-radius: 5px;
+    padding: .3em;
+}
+
+.rac-message-close-button {
+    font-size: 16px;
+    color: #3f3e40;
+    background-color: #eeeeec;
+    border-radius: 5px;
+    margin: .2em;
+}
+
+.rac-message-close-button:active {
+   background-color: #3f3e40;
+}
+
+.rac-message-layout {
+    font-size: 64px;
+    font-weight: bold;
+    background-color: #3f3e40;
+    border: solid 1px #eeeeec;
+    border-radius: 5px;
+    padding: .2em;
+}

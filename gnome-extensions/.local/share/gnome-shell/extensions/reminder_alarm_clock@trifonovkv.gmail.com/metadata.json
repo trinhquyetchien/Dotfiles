@@ -1,0 +1,17 @@
+{
+    "name": "Reminder Alarm Clock", 
+    "description": "The reminder alarm clock will remind you of an important event at the appointed time.", 
+    "uuid": "reminder_alarm_clock@trifonovkv.gmail.com",
+    "url": "https://github.com/nE0sIghT/ReminderAlarmClock",
+
+    "gettext-domain": "reminderAlarmClock",
+    "settings-schema": "org.gnome.shell.extensions.reminderalarmclock",
+
+    "shell-version": [
+        "46",
+        "47",
+        "48",
+        "49",
+        "50"
+    ]
+}

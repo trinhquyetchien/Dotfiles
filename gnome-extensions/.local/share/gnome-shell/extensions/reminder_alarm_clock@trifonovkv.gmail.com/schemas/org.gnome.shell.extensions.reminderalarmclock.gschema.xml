@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.reminderalarmclock" path="/org/gnome/shell/extensions/reminderalarmclock/">
+    <key name="drop-seconds" type="b">
+      <default>false</default>
+    </key>
+    <key name="message" type="s">
+      <default>"Knock knock"</default>
+    </key>
+    <key name="play-sound" type="b">
+      <default>false</default>
+    </key>
+     <key name="sound-file-path" type="s">
+      <default>"file:///usr/share/sounds/gnome/default/alerts/glass.ogg"</default>
+    </key>
+    <key name="presents" type="s">
+      <default>"1 5 10 15 30 60"</default>
+    </key>
+    <key name="auto-close-reminder-window" type="b">
+      <default>false</default>
+    </key>
+    <key name="show-test-notification" type="b">
+      <default>false</default>
+    </key>
+    <key name="show-remaining-time-in-taskbar" type="b">
+      <default>false</default>
+    </key>
+    <key name="repeat" type="b">
+      <default>false</default>
+    </key>
+    <key name="time-repeat" type="s">
+      <default>"13:00"</default>
+    </key>
+  </schema>
+</schemalist>

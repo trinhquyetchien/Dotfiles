@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.runandroidemulators" path="/org/gnome/shell/extensions/runandroidemulators/">
+    <key name="android-sdk-path" type="s">
+      <default>''</default>
+      <summary>Path to Android SDK</summary>
+      <description>This property allows to find Android SDK path. Set to empty string, to use a default value.</description>
+    </key>
+  </schema>
+</schemalist>

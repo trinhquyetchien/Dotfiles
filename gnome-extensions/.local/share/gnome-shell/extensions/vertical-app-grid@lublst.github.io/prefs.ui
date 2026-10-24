@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface domain="vertical-app-grid@lublst.github.io">
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="adwaita" version="1.0"/>
+
+  <object class="AdwPreferencesPage" id="preferences-page">
+    <property name="title" translatable="yes">Preferences</property>
+    <property name="icon-name">org.gnome.Settings-system-symbolic</property>
+
+    <child>
+      <object class="AdwPreferencesGroup">
+        <property name="title" translatable="yes">App Grid</property>
+
+        <child>
+          <object class="AdwComboRow" id="app-sorting">
+            <property name="title" translatable="yes">App Sorting</property>
+            <property name="model">
+              <object class="GtkStringList">
+                <items>
+                  <item translatable="yes">Most Used</item>
+                  <item translatable="yes">Alphabetical</item>
+                </items>
+              </object>
+            </property>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwComboRow" id="favorites-sorting">
+            <property name="title" translatable="yes">Favorites Sorting</property>
+            <property name="model">
+              <object class="GtkStringList">
+                <items>
+                  <item translatable="yes">As in Dash</item>
+                  <item translatable="yes">Most Used</item>
+                  <item translatable="yes">Alphabetical</item>
+                </items>
+              </object>
+            </property>
+          </object>
+        </child>
+
+      </object>
+    </child>
+
+    <child>
+      <object class="AdwPreferencesGroup">
+
+        <child>
+          <object class="AdwSwitchRow" id="favorites-section">
+            <property name="title" translatable="yes">Show Favorites Section</property>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwSwitchRow" id="show-labels">
+            <property name="title" translatable="yes">Show App Labels</property>
+          </object>
+        </child>
+
+      </object>
+    </child>
+
+    <child>
+      <object class="AdwPreferencesGroup">
+        <child>
+          <object class="AdwSwitchRow" id="animate-scroll">
+            <property name="title" translatable="yes">Smooth Scrolling</property>
+          </object>
+        </child>
+      </object>
+    </child>
+
+    <child>
+      <object class="AdwPreferencesGroup">
+        <property name="title" translatable="yes">Customization</property>
+
+        <child>
+          <object class="AdwSpinRow" id="columns">
+            <property name="title" translatable="yes">Columns</property>
+            <property name="adjustment">
+              <object class="GtkAdjustment">
+                <property name="lower">1</property>
+                <property name="upper">100</property>
+                <property name="step-increment">1</property>
+              </object>
+            </property>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwSpinRow" id="icon-size">
+            <property name="title" translatable="yes">Icon Size</property>
+            <property name="adjustment">
+              <object class="GtkAdjustment">
+                <property name="lower">16</property>
+                <property name="upper">128</property>
+                <property name="step-increment">1</property>
+              </object>
+            </property>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwSpinRow" id="icon-spacing">
+            <property name="title" translatable="yes">Icon Spacing</property>
+            <property name="adjustment">
+              <object class="GtkAdjustment">
+                <property name="lower">0</property>
+                <property name="upper">128</property>
+                <property name="step-increment">1</property>
+              </object>
+            </property>
+          </object>
+        </child>
+
+      </object>
+    </child>
+
+  </object>
+
+</interface>

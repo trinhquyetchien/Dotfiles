@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.calendar-reminders"
+          path="/org/gnome/shell/extensions/calendar-reminders/">
+    <key name="snooze-minutes" type="i">
+      <default>10</default>
+      <range min="1" max="1440"/>
+      <summary>Snooze length</summary>
+      <description>Time taken in minutes before a snoozed notification reappears.</description>
+    </key>
+  </schema>
+</schemalist>

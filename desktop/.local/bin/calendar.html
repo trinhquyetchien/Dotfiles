@@ -329,7 +329,7 @@
       }
 
       /* Modal */
-      #modal, #delete-confirm-modal {
+      #modal, #recurring-confirm-modal {
         display: none;
         position: fixed;
         top: 0;
@@ -344,7 +344,7 @@
         justify-content: center;
       }
       
-      #delete-confirm-modal {
+      #recurring-confirm-modal {
         z-index: 110;
       }
 
@@ -352,7 +352,7 @@
         background: var(--bg-modal);
         padding: 28px;
         border-radius: 12px;
-        width: 360px;
+        width: 380px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
         border: 1px solid var(--border-color);
         color: var(--text-main);
@@ -374,6 +374,7 @@
       }
 
       .modal-content input[type="text"],
+      .modal-content input[type="date"],
       .modal-content textarea,
       .modal-content input[type="time"] {
         width: 100%;
@@ -387,11 +388,59 @@
         font-size: 14px;
         outline: none;
         transition: border 0.2s;
+        box-sizing: border-box;
+        color-scheme: dark;
       }
 
       .modal-content input:focus,
       .modal-content textarea:focus {
         border-color: var(--btn-primary);
+      }
+
+      .recurring-opt-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 12px 14px;
+        border-radius: var(--radius);
+        border: 1px solid var(--border-color);
+        background: var(--bg-input);
+        color: var(--text-main);
+        cursor: pointer;
+        text-align: left;
+        transition: all 0.2s ease;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .recurring-opt-btn:hover {
+        background: var(--bg-hover);
+        border-color: var(--btn-primary);
+      }
+
+      .recurring-opt-btn strong {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 3px;
+      }
+
+      .recurring-opt-btn span {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      .recurring-opt-btn.danger {
+        border-color: rgba(255, 69, 58, 0.3);
+        background: rgba(255, 69, 58, 0.08);
+      }
+
+      .recurring-opt-btn.danger strong {
+        color: var(--btn-danger);
+      }
+
+      .recurring-opt-btn.danger:hover {
+        border-color: var(--btn-danger);
+        background: rgba(255, 69, 58, 0.16);
       }
 
       .modal-content input[type="color"] {
@@ -408,18 +457,20 @@
       .modal-buttons {
         display: flex;
         justify-content: flex-end;
-        gap: 10px;
+        align-items: center;
+        gap: 8px;
       }
 
       .modal-buttons button {
-        padding: 10px 18px;
+        padding: 9px 15px;
         border: none;
         border-radius: var(--radius);
         cursor: pointer;
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 600;
         font-family: inherit;
-        transition: background 0.2s;
+        transition: background 0.2s, border-color 0.2s;
+        white-space: nowrap;
       }
 
       .btn-cancel {
@@ -449,6 +500,46 @@
 
       .btn-delete:hover {
         background: rgba(255, 69, 58, 0.2);
+      }
+
+      .btn-duplicate {
+        background: var(--btn-bg);
+        color: var(--text-main);
+        border: 1px solid var(--border-color) !important;
+      }
+
+      .btn-duplicate:hover {
+        background: var(--btn-hover);
+        border-color: var(--text-muted) !important;
+      }
+
+      .event-duplicate-btn {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 22px;
+        height: 22px;
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: inherit;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+        opacity: 0.85;
+        transition: opacity 0.15s, background 0.15s;
+        z-index: 15;
+      }
+
+      .event:hover .event-duplicate-btn {
+        display: flex;
+      }
+
+      .event-duplicate-btn:hover {
+        opacity: 1;
+        background: rgba(0, 0, 0, 0.45);
       }
 
       .drag-ghost {
@@ -530,6 +621,17 @@
 
         <div style="display: flex; gap: 12px">
           <div style="flex: 1">
+            <label>Start Date</label>
+            <input type="date" id="ev-date" onchange="onStartDateChange(this.value)" />
+          </div>
+          <div style="flex: 1">
+            <label>End Date</label>
+            <input type="date" id="ev-end-date" />
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px">
+          <div style="flex: 1">
             <label>Start Time</label>
             <input type="text" id="ev-start" placeholder="HH:MM" maxlength="5" oninput="formatTimeInput(this)" onblur="validateTimeInput(this)" />
           </div>
@@ -555,21 +657,35 @@
 
         <div class="modal-buttons">
           <button id="btn-delete" class="btn-delete">Delete</button>
+          <button id="btn-duplicate" class="btn-duplicate" onclick="duplicateModal()">Duplicate</button>
           <button onclick="closeModal()" class="btn-cancel">Cancel</button>
           <button onclick="saveModal()" class="btn-save">Save</button>
         </div>
       </div>
     </div>
 
-    <div id="delete-confirm-modal">
-      <div class="modal-content" style="width: 320px; text-align: center;">
-        <h3>Delete Recurring Task</h3>
-        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">This is a repeating task. Which occurrences do you want to delete?</p>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <button onclick="confirmDeleteMode(1)" style="padding: 10px; border-radius: var(--radius); border: 1px solid var(--border-color); background: transparent; color: var(--text-main); cursor: pointer;">This event only</button>
-          <button onclick="confirmDeleteMode(2)" style="padding: 10px; border-radius: var(--radius); border: 1px solid var(--border-color); background: transparent; color: var(--text-main); cursor: pointer;">This and following events</button>
-          <button onclick="confirmDeleteMode(3)" style="padding: 10px; border-radius: var(--radius); border: 1px solid rgba(255, 69, 58, 0.3); background: rgba(255, 69, 58, 0.1); color: var(--btn-danger); cursor: pointer;">All events</button>
-          <button onclick="closeDeleteConfirm()" style="padding: 10px; margin-top: 8px; background: transparent; border: none; color: var(--text-muted); cursor: pointer;">Cancel</button>
+    <div id="recurring-confirm-modal">
+      <div class="modal-content" style="width: 360px;">
+        <h3 id="recurring-modal-title" style="margin-top: 0; margin-bottom: 8px;">Tác vụ lặp lại</h3>
+        <p id="recurring-modal-desc" style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.4;">
+          Đây là tác vụ lặp lại. Bạn muốn áp dụng thay đổi cho những tác vụ nào?
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <button id="recurring-opt-1" onclick="confirmRecurringChoice(1)" class="recurring-opt-btn">
+            <strong>Task này (This task only)</strong>
+            <span id="recurring-opt-1-desc">Chỉ áp dụng cho tác vụ vào ngày này</span>
+          </button>
+          <button id="recurring-opt-2" onclick="confirmRecurringChoice(2)" class="recurring-opt-btn">
+            <strong>Từ task này (This and following)</strong>
+            <span id="recurring-opt-2-desc">Áp dụng từ tác vụ ngày này trở đi</span>
+          </button>
+          <button id="recurring-opt-3" onclick="confirmRecurringChoice(3)" class="recurring-opt-btn">
+            <strong>Toàn bộ (All tasks)</strong>
+            <span id="recurring-opt-3-desc">Áp dụng cho toàn bộ các lần lặp của tác vụ</span>
+          </button>
+          <button onclick="closeRecurringConfirm()" class="btn-cancel" style="padding: 10px; margin-top: 4px; width: 100%; background: transparent; border: none; color: var(--text-muted); cursor: pointer; text-align: center;">
+            Hủy (Cancel)
+          </button>
         </div>
       </div>
     </div>
@@ -582,6 +698,13 @@
         let b = parseInt(hexcolor.substr(5, 2), 16);
         let yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
         return (yiq >= 128) ? '#1c1c1e' : 'white';
+      }
+
+      function onStartDateChange(val) {
+        const endEl = document.getElementById("ev-end-date");
+        if (endEl && (!endEl.value || endEl.value < val)) {
+          endEl.value = val;
+        }
       }
 
       function formatTimeInput(el) {
@@ -617,23 +740,58 @@
       let hoveredEventDate = null;
 
       document.addEventListener("keydown", (e) => {
+        const recurringModal = document.getElementById("recurring-confirm-modal");
+        if (recurringModal && recurringModal.style.display === "flex") {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            closeRecurringConfirm();
+          } else if (e.key === "1") {
+            e.preventDefault();
+            confirmRecurringChoice(1);
+          } else if (e.key === "2") {
+            e.preventDefault();
+            confirmRecurringChoice(2);
+          } else if (e.key === "3") {
+            e.preventDefault();
+            confirmRecurringChoice(3);
+          }
+          return;
+        }
+
         const modal = document.getElementById("modal");
         if (modal.style.display === "flex") {
-          if (e.key === "Enter" && document.activeElement.tagName.toLowerCase() !== "textarea") {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            closeModal();
+          } else if ((e.ctrlKey || e.metaKey) && (e.key === "d" || e.key === "D")) {
+            e.preventDefault();
+            duplicateModal();
+          } else if (e.key === "Enter" && document.activeElement.tagName.toLowerCase() !== "textarea") {
             e.preventDefault();
             saveModal();
           }
         } else {
           if ((e.key === "Delete" || e.key === "Backspace") && hoveredEventId) {
             const ev = events.find((ev) => ev.id === hoveredEventId);
-            if (ev && ev.repeatDays && ev.repeatDays.length > 0) {
-              openDeleteConfirm(ev.id, hoveredEventDate);
-            } else {
-              events = events.filter((ev) => ev.id !== hoveredEventId);
-              saveEvents();
+            if (ev) {
+              if (ev.repeatDays && ev.repeatDays.length > 0) {
+                openRecurringConfirm({
+                  action: "delete",
+                  ev: ev,
+                  occurrenceDate: hoveredEventDate || ev.start.substring(0, 10)
+                });
+              } else {
+                events = events.filter((ev) => ev.id !== hoveredEventId);
+                saveEvents();
+              }
             }
             hoveredEventId = null;
             hoveredEventDate = null;
+          } else if ((e.key === "d" || e.key === "D") && hoveredEventId && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            const ev = events.find((ev) => ev.id === hoveredEventId);
+            if (ev) {
+              duplicateEvent(ev, hoveredEventDate);
+            }
           }
         }
       });
@@ -722,72 +880,243 @@
       }
 
       let isDragging = false;
-      let startY = 0;
-      let dragGhost = null;
-      let activeCol = null;
-      let activeDateStr = null;
+      let dragCreateStartDateStr = null;
+      let dragCreateStartY = 0;
+      let dragCreateCurrentStart = null;
+      let dragCreateCurrentEnd = null;
 
       let isResizing = false;
       let resizingEvent = null;
-      let resizingStartY = 0;
-      let resizingInitialEnd = null;
+      let resizingOccurrenceDate = null;
+      let resizingOccurrenceStart = null;
+      let resizingOriginalEndStr = null;
+      let resizingCurrentDurationMs = null;
 
       document.addEventListener("mousemove", (e) => {
         if (isResizing && resizingEvent) {
-          const deltaY = e.clientY - resizingStartY;
-          const deltaMs = (deltaY / PIXELS_PER_HOUR) * 60 * 60 * 1000;
-          
-          let deltaMins = Math.round(deltaMs / (1000 * 60));
-          deltaMins = Math.round(deltaMins / 15) * 15;
-          
-          let snappedEnd = new Date(resizingInitialEnd.getTime() + deltaMins * 60 * 1000);
-          let start = new Date(resizingEvent.start);
-          if (snappedEnd.getTime() - start.getTime() < 15 * 60 * 1000) {
-              snappedEnd = new Date(start.getTime() + 15 * 60 * 1000);
+          const dayCols = Array.from(document.querySelectorAll("#days-bg .day-col"));
+          let targetCol = null;
+          for (const col of dayCols) {
+            const r = col.getBoundingClientRect();
+            if (e.clientX >= r.left && e.clientX < r.right) {
+              targetCol = col;
+              break;
+            }
           }
-          
-          const newEndStr = formatDateYMD(snappedEnd) + "T" + String(snappedEnd.getHours()).padStart(2, '0') + ":" + String(snappedEnd.getMinutes()).padStart(2, '0') + ":00";
-          
-          if (resizingEvent.end !== newEndStr) {
+          if (!targetCol && dayCols.length > 0) {
+            const firstR = dayCols[0].getBoundingClientRect();
+            const lastR = dayCols[dayCols.length - 1].getBoundingClientRect();
+            if (e.clientX < firstR.left) targetCol = dayCols[0];
+            else if (e.clientX >= lastR.left) targetCol = dayCols[dayCols.length - 1];
+          }
+
+          if (targetCol && resizingOccurrenceStart) {
+            const rect = targetCol.getBoundingClientRect();
+            const targetDateStr = targetCol.dataset.date;
+            let y = e.clientY - rect.top;
+            y = Math.max(0, Math.min(y, 24 * PIXELS_PER_HOUR));
+
+            let hour = Math.floor(y / PIXELS_PER_HOUR);
+            let min = Math.floor(((y % PIXELS_PER_HOUR) / PIXELS_PER_HOUR) * 60);
+            min = Math.round(min / 15) * 15;
+            if (min === 60) {
+              hour++;
+              min = 0;
+            }
+            if (hour >= 24) {
+              hour = 24;
+              min = 0;
+            }
+
+            let candidateEnd = new Date(targetDateStr + "T00:00:00");
+            if (hour === 24) {
+              candidateEnd.setDate(candidateEnd.getDate() + 1);
+              candidateEnd.setHours(0, 0, 0, 0);
+            } else {
+              candidateEnd.setHours(hour, min, 0, 0);
+            }
+
+            const minDurationMs = 15 * 60 * 1000;
+            if (candidateEnd.getTime() - resizingOccurrenceStart.getTime() < minDurationMs) {
+              candidateEnd = new Date(resizingOccurrenceStart.getTime() + minDurationMs);
+            }
+
+            const newDurationMs = candidateEnd.getTime() - resizingOccurrenceStart.getTime();
+            resizingCurrentDurationMs = newDurationMs;
+
+            const baseStart = new Date(resizingEvent.start);
+            const newAnchorEnd = new Date(baseStart.getTime() + newDurationMs);
+            const newEndStr = formatDateYMD(newAnchorEnd) + "T" + String(newAnchorEnd.getHours()).padStart(2, '0') + ":" + String(newAnchorEnd.getMinutes()).padStart(2, '0') + ":00";
+
+            if (resizingEvent.end !== newEndStr) {
               resizingEvent.end = newEndStr;
               renderCalendar();
+            }
           }
           return;
         }
 
-        if (!isDragging || !dragGhost || !activeCol) return;
-        const rect = activeCol.getBoundingClientRect();
-        let currentY = e.clientY - rect.top;
-        const step = PIXELS_PER_HOUR / 4;
-        currentY = Math.round(currentY / step) * step;
-        currentY = Math.max(0, Math.min(currentY, 24 * PIXELS_PER_HOUR));
+        if (isDragging && dragCreateStartDateStr) {
+          const dayCols = Array.from(document.querySelectorAll("#days-bg .day-col"));
+          let targetCol = null;
+          for (const col of dayCols) {
+            const r = col.getBoundingClientRect();
+            if (e.clientX >= r.left && e.clientX < r.right) {
+              targetCol = col;
+              break;
+            }
+          }
+          if (!targetCol && dayCols.length > 0) {
+            const firstR = dayCols[0].getBoundingClientRect();
+            const lastR = dayCols[dayCols.length - 1].getBoundingClientRect();
+            if (e.clientX < firstR.left) targetCol = dayCols[0];
+            else if (e.clientX >= lastR.left) targetCol = dayCols[dayCols.length - 1];
+          }
 
-        const top = Math.min(startY, currentY);
-        const height = Math.abs(currentY - startY);
-        dragGhost.style.top = top + "px";
-        dragGhost.style.height = height + "px";
+          if (targetCol) {
+            const rect = targetCol.getBoundingClientRect();
+            const targetDateStr = targetCol.dataset.date;
+            let y = e.clientY - rect.top;
+            const step = PIXELS_PER_HOUR / 4;
+            y = Math.round(y / step) * step;
+            y = Math.max(0, Math.min(y, 24 * PIXELS_PER_HOUR));
+
+            let curH = Math.floor(y / PIXELS_PER_HOUR);
+            let curM = Math.floor(((y % PIXELS_PER_HOUR) / PIXELS_PER_HOUR) * 60);
+            curM = Math.round(curM / 15) * 15;
+            if (curM === 60) {
+              curH++;
+              curM = 0;
+            }
+
+            let curDate = new Date(targetDateStr + "T00:00:00");
+            if (curH >= 24) {
+              curDate.setDate(curDate.getDate() + 1);
+              curDate.setHours(0, 0, 0, 0);
+            } else {
+              curDate.setHours(curH, curM, 0, 0);
+            }
+
+            let startH = Math.floor(dragCreateStartY / PIXELS_PER_HOUR);
+            let startM = Math.floor(((dragCreateStartY % PIXELS_PER_HOUR) / PIXELS_PER_HOUR) * 60);
+            startM = Math.round(startM / 15) * 15;
+            if (startM === 60) {
+              startH++;
+              startM = 0;
+            }
+            let anchorDate = new Date(dragCreateStartDateStr + "T00:00:00");
+            anchorDate.setHours(startH, startM, 0, 0);
+
+            let dtStart, dtEnd;
+            if (anchorDate <= curDate) {
+              dtStart = anchorDate;
+              dtEnd = curDate;
+            } else {
+              dtStart = curDate;
+              dtEnd = anchorDate;
+            }
+
+            dragCreateCurrentStart = dtStart;
+            dragCreateCurrentEnd = dtEnd;
+
+            document.querySelectorAll(".drag-ghost").forEach((el) => el.remove());
+
+            if (dtStart.getTime() === dtEnd.getTime()) {
+              const ghost = document.createElement("div");
+              ghost.className = "drag-ghost";
+              ghost.style.top = dragCreateStartY + "px";
+              ghost.style.height = "0px";
+              targetCol.appendChild(ghost);
+              return;
+            }
+
+            for (const col of dayCols) {
+              const colDateStr = col.dataset.date;
+              const colStart = new Date(colDateStr + "T00:00:00");
+              const colEnd = new Date(colDateStr + "T00:00:00");
+              colEnd.setDate(colEnd.getDate() + 1);
+
+              const segStart = new Date(Math.max(dtStart.getTime(), colStart.getTime()));
+              const segEnd = new Date(Math.min(dtEnd.getTime(), colEnd.getTime()));
+
+              if (segStart < segEnd) {
+                const segTop = (segStart.getHours() + segStart.getMinutes() / 60) * PIXELS_PER_HOUR;
+                const segBottom = (segEnd.getTime() === colEnd.getTime())
+                  ? 24 * PIXELS_PER_HOUR
+                  : (segEnd.getHours() + segEnd.getMinutes() / 60) * PIXELS_PER_HOUR;
+                const segHeight = segBottom - segTop;
+
+                if (segHeight > 0) {
+                  const ghost = document.createElement("div");
+                  ghost.className = "drag-ghost";
+                  ghost.style.top = segTop + "px";
+                  ghost.style.height = segHeight + "px";
+                  col.appendChild(ghost);
+                }
+              }
+            }
+          }
+          return;
+        }
       });
 
       document.addEventListener("mouseup", (e) => {
         if (isResizing) {
           isResizing = false;
+          const ev = resizingEvent;
+          const occDate = resizingOccurrenceDate;
+          const origEndStr = resizingOriginalEndStr;
+          const finalEndStr = ev ? ev.end : null;
+          const finalDurationMs = resizingCurrentDurationMs;
+
           resizingEvent = null;
+          resizingOccurrenceDate = null;
+          resizingOccurrenceStart = null;
+          resizingOriginalEndStr = null;
+          resizingCurrentDurationMs = null;
           document.body.style.cursor = '';
+
+          if (!ev || origEndStr === finalEndStr) {
+            return;
+          }
+
+          if (ev.repeatDays && ev.repeatDays.length > 0) {
+            ev.end = origEndStr;
+            renderCalendar();
+
+            openRecurringConfirm({
+              action: "resize",
+              ev: ev,
+              occurrenceDate: occDate,
+              origEndStr: origEndStr,
+              finalEndStr: finalEndStr,
+              newDurationMs: finalDurationMs
+            });
+            return;
+          }
+
           saveEvents();
           return;
         }
 
-        if (!isDragging) return;
-        isDragging = false;
-        if (dragGhost) {
-          const top = parseFloat(dragGhost.style.top);
-          const height = parseFloat(dragGhost.style.height);
-          dragGhost.remove();
-          dragGhost = null;
+        if (isDragging) {
+          isDragging = false;
+          document.querySelectorAll(".drag-ghost").forEach((el) => el.remove());
 
-          if (height > 10) openModalForNew(activeDateStr, top, height);
+          const dtStart = dragCreateCurrentStart;
+          const dtEnd = dragCreateCurrentEnd;
+          dragCreateStartDateStr = null;
+          dragCreateCurrentStart = null;
+          dragCreateCurrentEnd = null;
+
+          if (!dtStart || !dtEnd) return;
+
+          const durationMs = dtEnd.getTime() - dtStart.getTime();
+          if (durationMs >= 10 * 60 * 1000) {
+            openModalForNewWithDates(dtStart, dtEnd);
+          }
+          return;
         }
-        activeCol = null;
       });
 
       function renderCalendar() {
@@ -861,18 +1190,33 @@
             if (e.button !== 0) return;
             e.preventDefault();
             isDragging = true;
-            activeCol = col;
-            activeDateStr = dateStr;
+            dragCreateStartDateStr = dateStr;
             const rect = col.getBoundingClientRect();
-            startY = e.clientY - rect.top;
+            let y = e.clientY - rect.top;
             const step = PIXELS_PER_HOUR / 4;
-            startY = Math.round(startY / step) * step;
+            y = Math.round(y / step) * step;
+            y = Math.max(0, Math.min(y, 24 * PIXELS_PER_HOUR));
+            dragCreateStartY = y;
 
-            dragGhost = document.createElement("div");
-            dragGhost.className = "drag-ghost";
-            dragGhost.style.top = startY + "px";
-            dragGhost.style.height = "0px";
-            col.appendChild(dragGhost);
+            document.querySelectorAll(".drag-ghost").forEach((el) => el.remove());
+
+            const ghost = document.createElement("div");
+            ghost.className = "drag-ghost";
+            ghost.style.top = dragCreateStartY + "px";
+            ghost.style.height = "0px";
+            col.appendChild(ghost);
+
+            let startH = Math.floor(dragCreateStartY / PIXELS_PER_HOUR);
+            let startM = Math.floor(((dragCreateStartY % PIXELS_PER_HOUR) / PIXELS_PER_HOUR) * 60);
+            startM = Math.round(startM / 15) * 15;
+            if (startM === 60) {
+              startH++;
+              startM = 0;
+            }
+            const dStart = new Date(dragCreateStartDateStr + "T00:00:00");
+            dStart.setHours(startH, startM, 0, 0);
+            dragCreateCurrentStart = dStart;
+            dragCreateCurrentEnd = dStart;
           });
 
           col.addEventListener("dragover", (e) => {
@@ -978,15 +1322,7 @@
                 ":00";
               const newStart = new Date(newStartStr);
               const newEnd = new Date(newStart.getTime() + durationMs);
-
-              ev.start =
-                formatDateYMD(newStart) +
-                "T" +
-                String(newStart.getHours()).padStart(2, "0") +
-                ":" +
-                String(newStart.getMinutes()).padStart(2, "0") +
-                ":00";
-              ev.end =
+              const newEndStr =
                 formatDateYMD(newEnd) +
                 "T" +
                 String(newEnd.getHours()).padStart(2, "0") +
@@ -994,6 +1330,29 @@
                 String(newEnd.getMinutes()).padStart(2, "0") +
                 ":00";
 
+              if (ev.repeatDays && ev.repeatDays.length > 0) {
+                const sourceDate = e.dataTransfer.getData("sourceDate") || window.currentDraggingEventDate || ev.start.substring(0, 10);
+                const origTime = ev.start.substring(11, 16);
+                const newTime = String(startH).padStart(2, "0") + ":" + String(startM).padStart(2, "0");
+                if (sourceDate === dateStr && origTime === newTime) {
+                  return;
+                }
+
+                openRecurringConfirm({
+                  action: "drag",
+                  ev: ev,
+                  occurrenceDate: sourceDate,
+                  targetDate: dateStr,
+                  newStartStr: newStartStr,
+                  newEndStr: newEndStr,
+                  newStartTime: newTime,
+                  newEndTime: String(newEnd.getHours()).padStart(2, '0') + ":" + String(newEnd.getMinutes()).padStart(2, '0')
+                });
+                return;
+              }
+
+              ev.start = newStartStr;
+              ev.end = newEndStr;
               saveEvents();
             }
           });
@@ -1072,6 +1431,8 @@
             dateToEvents[dateStr].push({
               ev,
               dateStr,
+              virtualStart: wev.virtualStart,
+              virtualEnd: wev.virtualEnd,
               top,
               bottom,
               startHour,
@@ -1161,8 +1522,25 @@
                     <div class="event-title">${escapeHtml(item.ev.title)}</div>
                     <div class="event-time">${timeStr}</div>
                     ${item.ev.note ? `<div class="event-note">${escapeHtml(item.ev.note)}</div>` : ""}
+                    <button class="event-duplicate-btn" title="Duplicate task" type="button">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                      </svg>
+                    </button>
                     ${resizerHtml}
                 `;
+
+            const itemOccDate = item.virtualStart ? item.virtualStart.substring(0, 10) : item.dateStr;
+
+            const dupBtn = evDiv.querySelector('.event-duplicate-btn');
+            if (dupBtn) {
+              dupBtn.addEventListener("mousedown", (e) => e.stopPropagation());
+              dupBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                duplicateEvent(item.ev, itemOccDate);
+              });
+            }
 
             const resizerEl = evDiv.querySelector('.event-resizer');
             if (resizerEl) {
@@ -1171,18 +1549,21 @@
                 e.preventDefault();
                 isResizing = true;
                 resizingEvent = item.ev;
-                resizingStartY = e.clientY;
-                resizingInitialEnd = new Date(item.ev.end);
+                resizingOccurrenceDate = itemOccDate;
+                resizingOccurrenceStart = new Date(item.virtualStart || item.ev.start);
+                const currentEnd = new Date(item.virtualEnd || item.ev.end);
+                resizingCurrentDurationMs = currentEnd.getTime() - resizingOccurrenceStart.getTime();
+                resizingOriginalEndStr = item.ev.end;
                 document.body.style.cursor = 'ns-resize';
               });
             }
 
             evDiv.addEventListener("mouseenter", () => {
               hoveredEventId = item.ev.id;
-              hoveredEventDate = item.dateStr;
+              hoveredEventDate = itemOccDate;
             });
             evDiv.addEventListener("mouseleave", () => {
-              if (hoveredEventId === item.ev.id && hoveredEventDate === item.dateStr) {
+              if (hoveredEventId === item.ev.id && hoveredEventDate === itemOccDate) {
                   hoveredEventId = null;
                   hoveredEventDate = null;
               }
@@ -1190,14 +1571,16 @@
             evDiv.addEventListener("mousedown", (e) => e.stopPropagation());
             evDiv.addEventListener("click", (e) => {
               e.stopPropagation();
-              openModalForEdit(item.ev, item.dateStr);
+              openModalForEdit(item.ev, itemOccDate);
             });
             evDiv.addEventListener("dragstart", (e) => {
               window.currentDraggingEventId = item.ev.id;
+              window.currentDraggingEventDate = itemOccDate;
               const rect = evDiv.getBoundingClientRect();
               window.currentDraggingOffsetY = e.clientY - rect.top;
 
               e.dataTransfer.setData("text/plain", item.ev.id);
+              e.dataTransfer.setData("sourceDate", itemOccDate);
               e.dataTransfer.setData("offsetY", window.currentDraggingOffsetY);
               
               let ghostEl = document.getElementById('drag-ghost-hider');
@@ -1237,12 +1620,11 @@
           .replace(/'/g, "&#039;");
       }
 
-      function openModalForNew(dateStr, top, height) {
-        currentEventId = null;
-        document.getElementById("modal-title").innerText = "New Task";
-        document.getElementById("ev-title").value = "";
-        document.getElementById("ev-note").value = "";
+      let originalEditingEvent = null;
+      let originalEditingOccurrenceDate = null;
+      let originalEditingOccurrenceEndDate = null;
 
+      function openModalForNew(dateStr, top, height) {
         let startH = Math.floor(top / PIXELS_PER_HOUR);
         let startM = Math.floor(
           ((top % PIXELS_PER_HOUR) / PIXELS_PER_HOUR) * 60,
@@ -1271,44 +1653,77 @@
           }
         }
 
+        let startDate = new Date(dateStr + "T00:00:00");
+        startDate.setHours(startH, startM, 0, 0);
+
+        let endDate = new Date(dateStr + "T00:00:00");
         if (endH >= 24) {
-          endH = 23;
-          endM = 59;
-        }
-        if (startH >= 24) {
-          startH = 23;
-          startM = 45;
+          endDate.setDate(endDate.getDate() + 1);
+          endDate.setHours(0, 0, 0, 0);
+        } else {
+          endDate.setHours(endH, endM, 0, 0);
         }
 
-        document.getElementById("ev-start").dataset.date = dateStr;
-        document.getElementById("ev-start").value =
-          String(startH).padStart(2, "0") +
-          ":" +
-          String(startM).padStart(2, "0");
-        document.getElementById("ev-end").value =
-          String(endH).padStart(2, "0") + ":" + String(endM).padStart(2, "0");
+        openModalForNewWithDates(startDate, endDate);
+      }
+
+      function openModalForNewWithDates(startDate, endDate) {
+        currentEventId = null;
+        originalEditingEvent = null;
+        originalEditingOccurrenceDate = null;
+        originalEditingOccurrenceEndDate = null;
+        document.getElementById("modal-title").innerText = "New Task";
+        document.getElementById("ev-title").value = "";
+        document.getElementById("ev-note").value = "";
+        document.getElementById("ev-color").value = "#0a84ff";
+
+        const startDateStr = formatDateYMD(startDate);
+        const endDateStr = formatDateYMD(endDate);
+        const startTimeStr = String(startDate.getHours()).padStart(2, "0") + ":" + String(startDate.getMinutes()).padStart(2, "0");
+        const endTimeStr = String(endDate.getHours()).padStart(2, "0") + ":" + String(endDate.getMinutes()).padStart(2, "0");
+
+        document.getElementById("ev-date").value = startDateStr;
+        document.getElementById("ev-end-date").value = endDateStr;
+        document.getElementById("ev-start").dataset.date = startDateStr;
+        document.getElementById("ev-start").value = startTimeStr;
+        document.getElementById("ev-end").value = endTimeStr;
 
         const checkboxes = document.querySelectorAll('#ev-repeat input[type="checkbox"]');
         checkboxes.forEach(cb => cb.checked = false);
 
         document.getElementById("btn-delete").style.display = "none";
+        document.getElementById("btn-duplicate").style.display = "none";
         document.getElementById("modal").style.display = "flex";
         setTimeout(() => document.getElementById("ev-title").focus(), 100);
       }
 
       function openModalForEdit(ev, dateStr) {
         currentEventId = ev.id;
+        originalEditingEvent = JSON.parse(JSON.stringify(ev));
+        const occurrenceDate = dateStr || ev.start.substring(0, 10);
+        originalEditingOccurrenceDate = occurrenceDate;
+
+        const startTime = ev.start.substring(11, 16);
+        const endTime = ev.end.substring(11, 16);
+
+        const origStart = new Date(ev.start);
+        const origEnd = new Date(ev.end);
+        const durationMs = origEnd.getTime() - origStart.getTime();
+        const occStart = new Date(occurrenceDate + "T" + startTime + ":00");
+        const occEnd = new Date(occStart.getTime() + durationMs);
+        const occEndDateStr = formatDateYMD(occEnd);
+        originalEditingOccurrenceEndDate = occEndDateStr;
+
         document.getElementById("modal-title").innerText = "Edit Task";
         document.getElementById("ev-title").value = ev.title;
         document.getElementById("ev-note").value = ev.note || "";
         document.getElementById("ev-color").value = ev.color || "#0a84ff";
 
-        document.getElementById("ev-start").dataset.date = ev.start.substring(
-          0,
-          10,
-        );
-        document.getElementById("ev-start").value = ev.start.substring(11, 16);
-        document.getElementById("ev-end").value = ev.end.substring(11, 16);
+        document.getElementById("ev-date").value = occurrenceDate;
+        document.getElementById("ev-end-date").value = occEndDateStr;
+        document.getElementById("ev-start").dataset.date = occurrenceDate;
+        document.getElementById("ev-start").value = startTime;
+        document.getElementById("ev-end").value = endTime;
 
         const repeatDays = ev.repeatDays || [];
         const checkboxes = document.querySelectorAll('#ev-repeat input[type="checkbox"]');
@@ -1317,10 +1732,15 @@
         });
 
         document.getElementById("btn-delete").style.display = "inline-block";
+        document.getElementById("btn-duplicate").style.display = "inline-block";
         document.getElementById("btn-delete").onclick = () => {
           if (ev.repeatDays && ev.repeatDays.length > 0) {
             closeModal();
-            openDeleteConfirm(ev.id, dateStr);
+            openRecurringConfirm({
+              action: "delete",
+              ev: ev,
+              occurrenceDate: occurrenceDate
+            });
           } else {
             events = events.filter((e) => e.id !== ev.id);
             closeModal();
@@ -1332,45 +1752,339 @@
         setTimeout(() => document.getElementById("ev-title").focus(), 100);
       }
 
-      let pendingDeleteEventId = null;
-      let pendingDeleteEventDate = null;
+      let pendingRecurringAction = null;
 
-      function openDeleteConfirm(evId, dateStr) {
-        pendingDeleteEventId = evId;
-        pendingDeleteEventDate = dateStr;
-        document.getElementById("delete-confirm-modal").style.display = "flex";
+      function openRecurringConfirm(config) {
+        pendingRecurringAction = config;
+        const modal = document.getElementById("recurring-confirm-modal");
+        const titleEl = document.getElementById("recurring-modal-title");
+        const descEl = document.getElementById("recurring-modal-desc");
+        const opt1Desc = document.getElementById("recurring-opt-1-desc");
+        const opt2Desc = document.getElementById("recurring-opt-2-desc");
+        const opt3Desc = document.getElementById("recurring-opt-3-desc");
+        const opt3Btn = document.getElementById("recurring-opt-3");
+
+        opt3Btn.classList.remove("danger");
+
+        if (config.action === "delete") {
+          titleEl.innerText = "Xóa tác vụ lặp lại";
+          descEl.innerText = "Đây là tác vụ lặp lại. Bạn muốn xóa những tác vụ nào?";
+          opt1Desc.innerText = "Chỉ xóa tác vụ vào ngày này";
+          opt2Desc.innerText = "Xóa từ tác vụ ngày này trở đi";
+          opt3Desc.innerText = "Xóa toàn bộ các lần lặp của tác vụ";
+          opt3Btn.classList.add("danger");
+        } else if (config.action === "drag") {
+          titleEl.innerText = "Di chuyển tác vụ lặp lại";
+          descEl.innerText = "Đây là tác vụ lặp lại. Bạn muốn di chuyển những tác vụ nào?";
+          opt1Desc.innerText = "Chỉ di chuyển tác vụ vào ngày này";
+          opt2Desc.innerText = "Di chuyển từ tác vụ ngày này trở đi";
+          opt3Desc.innerText = "Di chuyển toàn bộ các lần lặp của tác vụ";
+        } else if (config.action === "resize") {
+          titleEl.innerText = "Đổi thời lượng tác vụ lặp lại";
+          descEl.innerText = "Đây là tác vụ lặp lại. Bạn muốn đổi thời lượng cho những tác vụ nào?";
+          opt1Desc.innerText = "Chỉ đổi thời lượng cho tác vụ vào ngày này";
+          opt2Desc.innerText = "Đổi thời lượng từ ngày này trở đi";
+          opt3Desc.innerText = "Đổi thời lượng cho toàn bộ các lần lặp";
+        } else if (config.action === "duplicate") {
+          titleEl.innerText = "Nhân bản tác vụ lặp lại";
+          descEl.innerText = "Đây là tác vụ lặp lại. Bạn muốn nhân bản tác vụ nào?";
+          opt1Desc.innerText = "Chỉ nhân bản tác vụ vào ngày này (tác vụ đơn lẻ)";
+          opt2Desc.innerText = "Nhân bản tác vụ lặp lại từ ngày này trở đi";
+          opt3Desc.innerText = "Nhân bản toàn bộ chuỗi tác vụ lặp lại";
+        } else {
+          titleEl.innerText = "Chỉnh sửa tác vụ lặp lại";
+          descEl.innerText = "Đây là tác vụ lặp lại. Bạn muốn áp dụng thay đổi cho những tác vụ nào?";
+          opt1Desc.innerText = "Chỉ áp dụng cho tác vụ vào ngày này";
+          opt2Desc.innerText = "Áp dụng từ tác vụ ngày này trở đi";
+          opt3Desc.innerText = "Áp dụng cho toàn bộ các lần lặp của tác vụ";
+        }
+
+        modal.style.display = "flex";
       }
 
-      function closeDeleteConfirm() {
-        document.getElementById("delete-confirm-modal").style.display = "none";
-        pendingDeleteEventId = null;
-        pendingDeleteEventDate = null;
+      function closeRecurringConfirm() {
+        const modal = document.getElementById("recurring-confirm-modal");
+        if (modal) modal.style.display = "none";
+        if (pendingRecurringAction && (pendingRecurringAction.action === "drag" || pendingRecurringAction.action === "resize")) {
+          renderCalendar();
+        }
+        pendingRecurringAction = null;
       }
 
-      function confirmDeleteMode(mode) {
-        if (!pendingDeleteEventId) return;
-        const ev = events.find(e => e.id === pendingDeleteEventId);
-        if (ev) {
+      function confirmRecurringChoice(mode) {
+        if (!pendingRecurringAction) return;
+        const config = pendingRecurringAction;
+        const ev = config.ev;
+        const occDate = config.occurrenceDate;
+        const action = config.action;
+
+        if (action === "delete") {
           if (mode === 1) {
-            // This event only
             if (!ev.exceptionDates) ev.exceptionDates = [];
-            if (pendingDeleteEventDate && !ev.exceptionDates.includes(pendingDeleteEventDate)) {
-              ev.exceptionDates.push(pendingDeleteEventDate);
+            if (occDate && !ev.exceptionDates.includes(occDate)) {
+              ev.exceptionDates.push(occDate);
             }
           } else if (mode === 2) {
-            // This and following events
-            // We set untilDate to the current date to stop repeating on or after this date
-            if (pendingDeleteEventDate) {
-              // Wait, if it's mode 2, untilDate should be the dateStr
-              // If untilDate is set, the recurring events on or after this date will be filtered out.
-              ev.untilDate = pendingDeleteEventDate;
+            if (occDate) {
+              if (occDate <= ev.start.substring(0, 10)) {
+                events = events.filter((e) => e.id !== ev.id);
+              } else {
+                ev.untilDate = occDate;
+              }
             }
           } else if (mode === 3) {
-            // All events
-            events = events.filter((e) => e.id !== pendingDeleteEventId);
+            events = events.filter((e) => e.id !== ev.id);
+          }
+        } else if (action === "edit") {
+          const newValues = config.newValues;
+          if (mode === 1) {
+            if (!ev.exceptionDates) ev.exceptionDates = [];
+            if (occDate && !ev.exceptionDates.includes(occDate)) {
+              ev.exceptionDates.push(occDate);
+            }
+            const singleEv = {
+              id: Date.now().toString(),
+              title: newValues.title,
+              note: newValues.note,
+              color: newValues.color,
+              start: newValues.start,
+              end: newValues.end,
+              repeatDays: []
+            };
+            events.push(singleEv);
+          } else if (mode === 2) {
+            const origAnchorDate = ev.start.substring(0, 10);
+            if (occDate <= origAnchorDate && newValues.dateStr === origAnchorDate) {
+              ev.title = newValues.title;
+              ev.note = newValues.note;
+              ev.color = newValues.color;
+              ev.start = newValues.start;
+              ev.end = newValues.end;
+              ev.repeatDays = newValues.repeatDays;
+            } else {
+              const oldUntilDate = ev.untilDate;
+              ev.untilDate = occDate;
+              const futureExceptions = (ev.exceptionDates || []).filter(d => d >= occDate);
+              ev.exceptionDates = (ev.exceptionDates || []).filter(d => d < occDate);
+
+              const newRecurringEv = {
+                id: Date.now().toString(),
+                title: newValues.title,
+                note: newValues.note,
+                color: newValues.color,
+                start: newValues.start,
+                end: newValues.end,
+                repeatDays: newValues.repeatDays,
+                exceptionDates: futureExceptions,
+                untilDate: (oldUntilDate && oldUntilDate > occDate) ? oldUntilDate : undefined
+              };
+              events.push(newRecurringEv);
+            }
+          } else if (mode === 3) {
+            ev.title = newValues.title;
+            ev.note = newValues.note;
+            ev.color = newValues.color;
+            ev.repeatDays = newValues.repeatDays;
+
+            if (!newValues.repeatDays || newValues.repeatDays.length === 0) {
+              ev.repeatDays = [];
+              ev.start = newValues.start;
+              ev.end = newValues.end;
+              delete ev.exceptionDates;
+              delete ev.untilDate;
+            } else {
+              const origAnchorDate = ev.start.substring(0, 10);
+              let dayOffset = 0;
+              if (newValues.dateStr && occDate) {
+                const d1 = new Date(occDate + "T00:00:00");
+                const d2 = new Date(newValues.dateStr + "T00:00:00");
+                dayOffset = Math.round((d2 - d1) / 86400000);
+              }
+
+              const anchorStart = new Date(origAnchorDate + "T" + newValues.startTime + ":00");
+              if (dayOffset !== 0) {
+                anchorStart.setDate(anchorStart.getDate() + dayOffset);
+              }
+
+              let anchorEnd = new Date(formatDateYMD(anchorStart) + "T" + newValues.endTime + ":00");
+              if (anchorEnd <= anchorStart) {
+                if (newValues.startTime === newValues.endTime) {
+                  anchorEnd = new Date(anchorStart.getTime() + 30 * 60000);
+                } else {
+                  anchorEnd.setDate(anchorEnd.getDate() + 1);
+                }
+              }
+
+              ev.start = formatDateYMD(anchorStart) + "T" + String(anchorStart.getHours()).padStart(2, '0') + ":" + String(anchorStart.getMinutes()).padStart(2, '0') + ":00";
+              ev.end = formatDateYMD(anchorEnd) + "T" + String(anchorEnd.getHours()).padStart(2, '0') + ":" + String(anchorEnd.getMinutes()).padStart(2, '0') + ":00";
+            }
+          }
+        } else if (action === "drag") {
+          const targetDate = config.targetDate;
+          const newStartStr = config.newStartStr;
+          const newEndStr = config.newEndStr;
+          const newStartTime = config.newStartTime;
+          const sourceDay = new Date(occDate + "T00:00:00").getDay();
+          const targetDay = new Date(targetDate + "T00:00:00").getDay();
+          const deltaDay = (targetDay - sourceDay + 7) % 7;
+
+          if (mode === 1) {
+            if (!ev.exceptionDates) ev.exceptionDates = [];
+            if (occDate && !ev.exceptionDates.includes(occDate)) {
+              ev.exceptionDates.push(occDate);
+            }
+            const singleEv = {
+              id: Date.now().toString(),
+              title: ev.title,
+              note: ev.note || "",
+              color: ev.color || "#0a84ff",
+              start: newStartStr,
+              end: newEndStr,
+              repeatDays: []
+            };
+            events.push(singleEv);
+          } else if (mode === 2) {
+            const origAnchorDate = ev.start.substring(0, 10);
+            let shiftedRepeatDays = [...ev.repeatDays];
+            if (deltaDay !== 0) {
+              shiftedRepeatDays = ev.repeatDays.map(d => (d === sourceDay ? targetDay : d));
+              shiftedRepeatDays = Array.from(new Set(shiftedRepeatDays)).sort();
+            }
+            if (occDate <= origAnchorDate && targetDate === origAnchorDate) {
+              ev.start = newStartStr;
+              ev.end = newEndStr;
+              ev.repeatDays = shiftedRepeatDays;
+            } else {
+              const oldUntilDate = ev.untilDate;
+              ev.untilDate = occDate;
+              const futureExceptions = (ev.exceptionDates || []).filter(d => d >= occDate);
+              ev.exceptionDates = (ev.exceptionDates || []).filter(d => d < occDate);
+
+              const newRecurringEv = {
+                id: Date.now().toString(),
+                title: ev.title,
+                note: ev.note || "",
+                color: ev.color || "#0a84ff",
+                start: newStartStr,
+                end: newEndStr,
+                repeatDays: shiftedRepeatDays,
+                exceptionDates: futureExceptions,
+                untilDate: (oldUntilDate && oldUntilDate > occDate) ? oldUntilDate : undefined
+              };
+              events.push(newRecurringEv);
+            }
+          } else if (mode === 3) {
+            if (deltaDay !== 0) {
+              ev.repeatDays = ev.repeatDays.map(d => (d === sourceDay ? targetDay : d));
+              ev.repeatDays = Array.from(new Set(ev.repeatDays)).sort();
+            }
+            const origAnchorDate = ev.start.substring(0, 10);
+            const anchorStart = new Date(origAnchorDate + "T" + newStartTime + ":00");
+            const durationMs = new Date(newEndStr) - new Date(newStartStr);
+            const anchorEnd = new Date(anchorStart.getTime() + durationMs);
+            ev.start = formatDateYMD(anchorStart) + "T" + String(anchorStart.getHours()).padStart(2, '0') + ":" + String(anchorStart.getMinutes()).padStart(2, '0') + ":00";
+            ev.end = formatDateYMD(anchorEnd) + "T" + String(anchorEnd.getHours()).padStart(2, '0') + ":" + String(anchorEnd.getMinutes()).padStart(2, '0') + ":00";
+          }
+        } else if (action === "resize") {
+          const newDurationMs = config.newDurationMs;
+          const occStart = new Date(occDate + "T" + ev.start.substring(11, 16) + ":00");
+          const occEnd = new Date(occStart.getTime() + newDurationMs);
+          const occEndStr = formatDateYMD(occEnd) + "T" + String(occEnd.getHours()).padStart(2, '0') + ":" + String(occEnd.getMinutes()).padStart(2, '0') + ":00";
+
+          if (mode === 1) {
+            if (!ev.exceptionDates) ev.exceptionDates = [];
+            if (occDate && !ev.exceptionDates.includes(occDate)) {
+              ev.exceptionDates.push(occDate);
+            }
+            const singleEv = {
+              id: Date.now().toString(),
+              title: ev.title,
+              note: ev.note || "",
+              color: ev.color || "#0a84ff",
+              start: formatDateYMD(occStart) + "T" + ev.start.substring(11, 16) + ":00",
+              end: occEndStr,
+              repeatDays: []
+            };
+            events.push(singleEv);
+          } else if (mode === 2) {
+            const origAnchorDate = ev.start.substring(0, 10);
+            const anchorStart = new Date(ev.start);
+            const anchorEnd = new Date(anchorStart.getTime() + newDurationMs);
+            const anchorEndStr = formatDateYMD(anchorEnd) + "T" + String(anchorEnd.getHours()).padStart(2, '0') + ":" + String(anchorEnd.getMinutes()).padStart(2, '0') + ":00";
+
+            if (occDate <= origAnchorDate) {
+              ev.end = anchorEndStr;
+            } else {
+              const oldUntilDate = ev.untilDate;
+              ev.untilDate = occDate;
+              const futureExceptions = (ev.exceptionDates || []).filter(d => d >= occDate);
+              ev.exceptionDates = (ev.exceptionDates || []).filter(d => d < occDate);
+
+              const newRecurringEv = {
+                id: Date.now().toString(),
+                title: ev.title,
+                note: ev.note || "",
+                color: ev.color || "#0a84ff",
+                start: formatDateYMD(occStart) + "T" + ev.start.substring(11, 16) + ":00",
+                end: occEndStr,
+                repeatDays: [...ev.repeatDays],
+                exceptionDates: futureExceptions,
+                untilDate: (oldUntilDate && oldUntilDate > occDate) ? oldUntilDate : undefined
+              };
+              events.push(newRecurringEv);
+            }
+          } else if (mode === 3) {
+            const anchorStart = new Date(ev.start);
+            const anchorEnd = new Date(anchorStart.getTime() + newDurationMs);
+            ev.end = formatDateYMD(anchorEnd) + "T" + String(anchorEnd.getHours()).padStart(2, '0') + ":" + String(anchorEnd.getMinutes()).padStart(2, '0') + ":00";
+          }
+        } else if (action === "duplicate") {
+          const newValues = config.newValues;
+          if (mode === 1) {
+            const singleEv = {
+              id: Date.now().toString(),
+              title: newValues.title,
+              note: newValues.note,
+              color: newValues.color,
+              start: newValues.start,
+              end: newValues.end,
+              repeatDays: []
+            };
+            events.push(singleEv);
+          } else if (mode === 2) {
+            const newRecurringEv = {
+              id: Date.now().toString(),
+              title: newValues.title,
+              note: newValues.note,
+              color: newValues.color,
+              start: newValues.start,
+              end: newValues.end,
+              repeatDays: [...newValues.repeatDays],
+              untilDate: ev.untilDate
+            };
+            events.push(newRecurringEv);
+          } else if (mode === 3) {
+            const origAnchorDate = ev.start.substring(0, 10);
+            const anchorStart = new Date(origAnchorDate + "T" + newValues.startTime + ":00");
+            const anchorEnd = new Date(origAnchorDate + "T" + newValues.endTime + ":00");
+            if (anchorEnd <= anchorStart) {
+              anchorEnd.setDate(anchorEnd.getDate() + 1);
+            }
+            const newRecurringEv = {
+              id: Date.now().toString(),
+              title: newValues.title,
+              note: newValues.note,
+              color: newValues.color,
+              start: formatDateYMD(anchorStart) + "T" + String(anchorStart.getHours()).padStart(2, '0') + ":" + String(anchorStart.getMinutes()).padStart(2, '0') + ":00",
+              end: formatDateYMD(anchorEnd) + "T" + String(anchorEnd.getHours()).padStart(2, '0') + ":" + String(anchorEnd.getMinutes()).padStart(2, '0') + ":00",
+              repeatDays: [...newValues.repeatDays],
+              untilDate: ev.untilDate
+            };
+            events.push(newRecurringEv);
           }
         }
-        closeDeleteConfirm();
+
+        closeRecurringConfirm();
         saveEvents();
       }
 
@@ -1378,45 +2092,231 @@
         document.getElementById("modal").style.display = "none";
       }
 
-      function saveModal() {
+      function duplicateEvent(ev, dateStr) {
+        if (!ev) return;
+        const occDate = dateStr || ev.start.substring(0, 10);
+        const startTime = ev.start.substring(11, 16);
+        const endTime = ev.end.substring(11, 16);
+        const occStartStr = occDate + "T" + startTime + ":00";
+        const occStart = new Date(occStartStr);
+        const origStart = new Date(ev.start);
+        const origEnd = new Date(ev.end);
+        const durationMs = origEnd.getTime() - origStart.getTime();
+        const occEnd = new Date(occStart.getTime() + durationMs);
+        const occEndStr = formatDateYMD(occEnd) + "T" + String(occEnd.getHours()).padStart(2, '0') + ":" + String(occEnd.getMinutes()).padStart(2, '0') + ":00";
+
+        if (ev.repeatDays && ev.repeatDays.length > 0) {
+          openRecurringConfirm({
+            action: "duplicate",
+            ev: ev,
+            occurrenceDate: occDate,
+            newValues: {
+              title: ev.title,
+              note: ev.note || "",
+              color: ev.color || "#0a84ff",
+              dateStr: occDate,
+              startTime: startTime,
+              endTime: endTime,
+              start: occStartStr,
+              end: occEndStr,
+              repeatDays: ev.repeatDays
+            }
+          });
+        } else {
+          const newEv = {
+            id: Date.now().toString(),
+            title: ev.title,
+            note: ev.note || "",
+            color: ev.color || "#0a84ff",
+            start: occStartStr,
+            end: occEndStr,
+            repeatDays: []
+          };
+          events.push(newEv);
+          saveEvents();
+        }
+      }
+
+      function duplicateModal() {
+        if (!currentEventId) return;
+
         const title = document.getElementById("ev-title").value || "Untitled";
         const note = document.getElementById("ev-note").value;
         const color = document.getElementById("ev-color").value;
 
-        const dateStr = document.getElementById("ev-start").dataset.date;
-        const startTime = document.getElementById("ev-start").value;
-        const endTime = document.getElementById("ev-end").value;
+        const dateStr = document.getElementById("ev-date").value || document.getElementById("ev-start").dataset.date || formatDateYMD(new Date());
+        const endDateStr = document.getElementById("ev-end-date").value || dateStr;
+        const startTime = document.getElementById("ev-start").value || "00:00";
+        const endTime = document.getElementById("ev-end").value || "00:30";
 
         const checkboxes = document.querySelectorAll('#ev-repeat input[type="checkbox"]:checked');
         const repeatDays = Array.from(checkboxes).map(cb => parseInt(cb.value));
 
         let startDate = new Date(dateStr + "T" + startTime + ":00");
-        let endDate = new Date(dateStr + "T" + endTime + ":00");
+        let endDate = new Date(endDateStr + "T" + endTime + ":00");
 
         if (endDate <= startDate) {
-           if (startTime === endTime) {
+           if (startTime === endTime && dateStr === endDateStr) {
                endDate = new Date(startDate.getTime() + 30 * 60000);
-           } else {
+           } else if (dateStr === endDateStr) {
                endDate.setDate(endDate.getDate() + 1);
+           } else {
+               endDate = new Date(startDate.getTime() + 30 * 60000);
            }
         }
 
-        const newEv = {
-          id: currentEventId || Date.now().toString(),
+        const newStartStr = formatDateYMD(startDate) + "T" + String(startDate.getHours()).padStart(2, '0') + ":" + String(startDate.getMinutes()).padStart(2, '0') + ":00";
+        const newEndStr = formatDateYMD(endDate) + "T" + String(endDate.getHours()).padStart(2, '0') + ":" + String(endDate.getMinutes()).padStart(2, '0') + ":00";
+
+        const ev = events.find((e) => e.id === currentEventId);
+        if (!ev) {
+          closeModal();
+          return;
+        }
+
+        const isRecurring = originalEditingEvent && originalEditingEvent.repeatDays && originalEditingEvent.repeatDays.length > 0;
+
+        if (isRecurring && repeatDays.length > 0) {
+          closeModal();
+          openRecurringConfirm({
+            action: "duplicate",
+            ev: ev,
+            originalEvent: originalEditingEvent,
+            occurrenceDate: originalEditingOccurrenceDate,
+            newValues: {
+              title: title,
+              note: note,
+              color: color,
+              dateStr: dateStr,
+              endDateStr: endDateStr,
+              startTime: startTime,
+              endTime: endTime,
+              start: newStartStr,
+              end: newEndStr,
+              repeatDays: repeatDays
+            }
+          });
+          return;
+        }
+
+        const duplicateEv = {
+          id: Date.now().toString(),
           title: title,
           note: note,
           color: color,
-          start: formatDateYMD(startDate) + "T" + String(startDate.getHours()).padStart(2, '0') + ":" + String(startDate.getMinutes()).padStart(2, '0') + ":00",
-          end: formatDateYMD(endDate) + "T" + String(endDate.getHours()).padStart(2, '0') + ":" + String(endDate.getMinutes()).padStart(2, '0') + ":00",
+          start: newStartStr,
+          end: newEndStr,
           repeatDays: repeatDays
         };
 
-        if (currentEventId) {
-          const idx = events.findIndex((e) => e.id === currentEventId);
-          if (idx >= 0) events[idx] = newEv;
-        } else {
-          events.push(newEv);
+        events.push(duplicateEv);
+        closeModal();
+        saveEvents();
+      }
+
+      function saveModal() {
+        const title = document.getElementById("ev-title").value || "Untitled";
+        const note = document.getElementById("ev-note").value;
+        const color = document.getElementById("ev-color").value;
+
+        const dateStr = document.getElementById("ev-date").value || document.getElementById("ev-start").dataset.date || formatDateYMD(new Date());
+        const endDateStr = document.getElementById("ev-end-date").value || dateStr;
+        const startTime = document.getElementById("ev-start").value || "00:00";
+        const endTime = document.getElementById("ev-end").value || "00:30";
+
+        const checkboxes = document.querySelectorAll('#ev-repeat input[type="checkbox"]:checked');
+        const repeatDays = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+        let startDate = new Date(dateStr + "T" + startTime + ":00");
+        let endDate = new Date(endDateStr + "T" + endTime + ":00");
+
+        if (endDate <= startDate) {
+           if (startTime === endTime && dateStr === endDateStr) {
+               endDate = new Date(startDate.getTime() + 30 * 60000);
+           } else if (dateStr === endDateStr) {
+               endDate.setDate(endDate.getDate() + 1);
+           } else {
+               endDate = new Date(startDate.getTime() + 30 * 60000);
+           }
         }
+
+        const newStartStr = formatDateYMD(startDate) + "T" + String(startDate.getHours()).padStart(2, '0') + ":" + String(startDate.getMinutes()).padStart(2, '0') + ":00";
+        const newEndStr = formatDateYMD(endDate) + "T" + String(endDate.getHours()).padStart(2, '0') + ":" + String(endDate.getMinutes()).padStart(2, '0') + ":00";
+
+        if (!currentEventId) {
+          const newEv = {
+            id: Date.now().toString(),
+            title: title,
+            note: note,
+            color: color,
+            start: newStartStr,
+            end: newEndStr,
+            repeatDays: repeatDays
+          };
+          events.push(newEv);
+          closeModal();
+          saveEvents();
+          return;
+        }
+
+        const ev = events.find((e) => e.id === currentEventId);
+        if (!ev) {
+          closeModal();
+          return;
+        }
+
+        const isRecurring = originalEditingEvent && originalEditingEvent.repeatDays && originalEditingEvent.repeatDays.length > 0;
+
+        if (isRecurring) {
+          const origStartTime = originalEditingEvent.start.substring(11, 16);
+          const origEndTime = originalEditingEvent.end.substring(11, 16);
+          const origRepeat = [...(originalEditingEvent.repeatDays || [])].sort().join(',');
+          const newRepeat = [...repeatDays].sort().join(',');
+          const origOccurrenceEndDate = originalEditingOccurrenceEndDate || originalEditingOccurrenceDate;
+
+          const hasChanged = 
+            title !== originalEditingEvent.title ||
+            (note || "") !== (originalEditingEvent.note || "") ||
+            (color || "#0a84ff") !== (originalEditingEvent.color || "#0a84ff") ||
+            dateStr !== originalEditingOccurrenceDate ||
+            endDateStr !== origOccurrenceEndDate ||
+            startTime !== origStartTime ||
+            endTime !== origEndTime ||
+            origRepeat !== newRepeat;
+
+          if (!hasChanged) {
+            closeModal();
+            return;
+          }
+
+          closeModal();
+          openRecurringConfirm({
+            action: "edit",
+            ev: ev,
+            originalEvent: originalEditingEvent,
+            occurrenceDate: originalEditingOccurrenceDate,
+            newValues: {
+              title: title,
+              note: note,
+              color: color,
+              dateStr: dateStr,
+              endDateStr: endDateStr,
+              startTime: startTime,
+              endTime: endTime,
+              start: newStartStr,
+              end: newEndStr,
+              repeatDays: repeatDays
+            }
+          });
+          return;
+        }
+
+        ev.title = title;
+        ev.note = note;
+        ev.color = color;
+        ev.start = newStartStr;
+        ev.end = newEndStr;
+        ev.repeatDays = repeatDays;
 
         closeModal();
         saveEvents();
