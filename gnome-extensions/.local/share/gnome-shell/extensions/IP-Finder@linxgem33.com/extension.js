@@ -248,7 +248,7 @@ class IpFinderMenuButton extends PanelMenu.Button {
         menuSection.actor.add_child(mapAndIpDetailsBox);
 
         this._mapTileBox = new St.BoxLayout({
-            vertical: true,
+            orientation: Clutter.Orientation.VERTICAL,
             x_align: Clutter.ActorAlign.CENTER,
             y_align: Clutter.ActorAlign.CENTER,
             y_expand: true,
@@ -258,7 +258,7 @@ class IpFinderMenuButton extends PanelMenu.Button {
 
         const ipInfoParentBox = new St.BoxLayout({
             style_class: 'ip-info-box',
-            vertical: true,
+            orientation: Clutter.Orientation.VERTICAL,
             x_align: Clutter.ActorAlign.CENTER,
         });
         mapAndIpDetailsBox.add_child(ipInfoParentBox);
@@ -267,7 +267,7 @@ class IpFinderMenuButton extends PanelMenu.Button {
         ipInfoParentBox.add_child(this._vpnInfoBox);
 
         this._ipInfoBox = new St.BoxLayout({
-            vertical: true,
+            orientation: Clutter.Orientation.VERTICAL,
         });
         ipInfoParentBox.add_child(this._ipInfoBox);
 

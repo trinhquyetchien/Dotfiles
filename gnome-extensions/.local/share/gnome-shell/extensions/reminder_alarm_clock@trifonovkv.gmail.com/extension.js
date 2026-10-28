@@ -44,25 +44,61 @@ class ReminderAlarmClock extends PanelMenu.Button {
         });
         this.insert_child_at_index(this.icon, 0);
 
+        let now = new Date();
         this.timeLabel = new St.Label({
             style_class: 'rac-time-label',
-            text: '+0m',
+            text: `${now.getHours().pad()}:${now.getMinutes().pad()}`,
             x_expand: true,
             y_align: Clutter.ActorAlign.CENTER
         });
 
         this.settings = extension.getSettings();
 
+        let initialMsg = '';
+        try {
+            initialMsg = this.settings.get_value('message').deep_unpack() || '';
+        } catch (e) {
+            initialMsg = '';
+        }
+
         this.messageEntry = new St.Entry({
             track_hover: false,
             can_focus: true,
+            x_expand: true,
             style_class: 'rac-message-entry',
             hint_text: _('Message...'),
-            text: this.settings.get_value('message').deep_unpack()
+            text: initialMsg
         });
 
-        this.messageEntry.clutter_text.connect('activate', () => {
-            this._onAddReminder();
+        // Ensure clicking anywhere on messageEntry grabs key focus
+        this.messageEntry.connect('button-press-event', () => {
+            global.stage.set_key_focus(this.messageEntry.clutter_text);
+            return Clutter.EVENT_PROPAGATE;
+        });
+
+        this.messageEntry.clutter_text.connect('button-press-event', () => {
+            global.stage.set_key_focus(this.messageEntry.clutter_text);
+            return Clutter.EVENT_PROPAGATE;
+        });
+
+        // Handle Enter to add reminder without closing the popup menu
+        this.messageEntry.clutter_text.connect('key-press-event', (actor, event) => {
+            let symbol = event.get_key_symbol();
+            if (symbol === Clutter.KEY_Return || symbol === Clutter.KEY_KP_Enter) {
+                this._onAddReminder();
+                return Clutter.EVENT_STOP;
+            }
+            return Clutter.EVENT_PROPAGATE;
+        });
+
+        // After ClutterText processes the keystroke (including space), stop propagation
+        // so PopupMenu / PanelMenu.Button does not intercept space/keys and close the menu
+        this.messageEntry.clutter_text.connect_after('key-press-event', (actor, event) => {
+            let symbol = event.get_key_symbol();
+            if (symbol === Clutter.KEY_Escape) {
+                return Clutter.EVENT_PROPAGATE;
+            }
+            return Clutter.EVENT_STOP;
         });
 
         this.alarmClock = new AlarmClock(
@@ -75,10 +111,13 @@ class ReminderAlarmClock extends PanelMenu.Button {
         );
 
         let menuItem = new PopupMenu.PopupBaseMenuItem({
-            can_focus: false, reactive: false
+            can_focus: false,
+            reactive: false,
+            activate: false,
+            hover: false,
         });
         let presents = this.settings.get_value('presents').deep_unpack();
-        menuItem.actor.add_child(this._makeUi(this._toLabels(presents)));
+        menuItem.add_child(this._makeUi(this._toLabels(presents)));
         this.menu.addMenuItem(menuItem);
 
         this.menu.connect('open-state-changed', (menu, isOpen) => {
@@ -86,8 +125,11 @@ class ReminderAlarmClock extends PanelMenu.Button {
                 this._updateTimeLabel();
                 this._updateRemindersList();
             } else {
-                this.settings.set_value(
-                    'message', new GLib.Variant('s', this.messageEntry.text));
+                try {
+                    let text = this.messageEntry.get_text?.() || this.messageEntry.text || '';
+                    this.settings.set_value(
+                        'message', new GLib.Variant('s', text));
+                } catch (e) {}
             }
         });
 
@@ -264,26 +306,36 @@ class ReminderAlarmClock extends PanelMenu.Button {
 
     _onAddReminder() {
         let minutes = this.pendingMinutes > 0 ? this.pendingMinutes : 5;
-        let message = this.messageEntry.text.trim();
+        let message = '';
+        try {
+            message = (this.messageEntry.get_text?.() || this.messageEntry.text || '').trim();
+        } catch (e) {
+            message = '';
+        }
         if (!message) {
             message = this.settings.get_string('message') || 'Knock knock';
         }
 
         this.alarmClock.add(minutes, message);
         this.pendingMinutes = 0;
+        try {
+            this.messageEntry.set_text('');
+        } catch (e) {}
         this._updateTimeLabel();
         this._updateRemindersList();
         this._updateTaskbar();
     }
 
     _updateTimeLabel() {
+        let now = Date.now();
+        let target = new Date(now + this.pendingMinutes * 60000);
+        let hours = target.getHours().pad();
+        let mins = target.getMinutes().pad();
+
         if (this.pendingMinutes > 0) {
-            let target = new Date(Date.now() + this.pendingMinutes * 60000);
-            let hours = target.getHours().pad();
-            let mins = target.getMinutes().pad();
-            this.timeLabel.text = `+${this.pendingMinutes}m (${hours}:${mins})`;
+            this.timeLabel.text = `${hours}:${mins} (+${this.pendingMinutes}m)`;
         } else {
-            this.timeLabel.text = '+0m';
+            this.timeLabel.text = `${hours}:${mins}`;
         }
     }
 
@@ -362,6 +414,9 @@ class ReminderAlarmClock extends PanelMenu.Button {
     _onClockTick(remainingSec, count) {
         this._updateTaskbar(remainingSec, count);
         if (this.menu && this.menu.isOpen) {
+            if (this.pendingMinutes === 0) {
+                this._updateTimeLabel();
+            }
             this._updateRemindersList();
         }
     }
@@ -388,7 +443,16 @@ class ReminderAlarmClock extends PanelMenu.Button {
     }
 
     _showReminder(reminder) {
-        let msg = (reminder && reminder.message) ? reminder.message : this.messageEntry.text;
+        let msg = (reminder && reminder.message) ? reminder.message : '';
+        if (!msg) {
+            try {
+                if (this.messageEntry) {
+                    msg = (this.messageEntry.get_text?.() || this.messageEntry.text || '').trim();
+                }
+            } catch (e) {
+                msg = '';
+            }
+        }
         if (!msg) {
             msg = this.settings.get_string('message') || 'Knock knock';
         }
@@ -436,16 +500,24 @@ class ReminderAlarmClock extends PanelMenu.Button {
         let modalGrab = null;
         button.connect('clicked', () => {
             if (modalGrab) {
-                Main.popModal(modalGrab);
+                try {
+                    Main.popModal(modalGrab);
+                } catch (e) {}
                 modalGrab = null;
             }
-            Main.uiGroup.remove_child(reminder);
+            try {
+                Main.uiGroup.remove_child(reminder);
+            } catch (e) {}
         });
         reminder.add_child(label);
         reminder.add_child(button);
         Main.uiGroup.add_child(reminder);
         this._setReminderPosition(reminder);
-        modalGrab = Main.pushModal(reminder);
+        try {
+            modalGrab = Main.pushModal(reminder);
+        } catch (e) {
+            modalGrab = null;
+        }
     }
 
     _setReminderPosition(reminder) {
