@@ -1,0 +1,98 @@
+# Herdr configuration
+# Managed via GNU Stow in ~/Dotfiles/herdr/.config/herdr/config.toml
+#
+# Phân chia phím:
+# - Neovim: <leader> = Space, <C-h/j/k/l> chuyển window, <C-b> cuộn docs cmp
+# - Tmux: Ctrl + a
+# - Herdr: Prefix là Ctrl + s
+
+onboarding = false
+
+[theme]
+name = "tokyo-night"
+auto_switch = false
+
+[terminal]
+default_shell = ""
+shell_mode = "auto"
+new_cwd = "follow"
+kitty_graphics = true
+
+[worktrees]
+directory = "~/.herdr/worktrees"
+
+[keys]
+# Prefix chính xác là Ctrl + s
+prefix = "ctrl+s"
+
+# Menu & trợ giúp
+help = "prefix+?"
+settings = "prefix+s"
+reload_config = "prefix+shift+r"
+detach = "prefix+q"
+toggle_sidebar = "prefix+b"
+workspace_picker = "prefix+w"
+goto = "prefix+g"
+
+# Tab actions
+new_tab = "prefix+c"
+next_tab = "prefix+n"
+previous_tab = "prefix+p"
+close_tab = "prefix+shift+x"
+
+# Pane navigation & layout (chỉ chạy khi bấm prefix ctrl+s trước)
+focus_pane_left = "prefix+h"
+focus_pane_down = "prefix+j"
+focus_pane_up = "prefix+k"
+focus_pane_right = "prefix+l"
+split_horizontal = "prefix+minus"
+split_vertical = "prefix+v"
+close_pane = "prefix+x"
+zoom = "prefix+z"
+resize_mode = "prefix+r"
+
+# Indexed jumps
+switch_tab = "prefix+1..9"
+switch_workspace = "prefix+shift+1..9"
+
+# Popup commands
+# [[keys.command]]
+# key = "prefix+alt+g"
+# type = "popup"
+# command = "lazygit"
+# description = "run lazygit"
+# width = "80%"
+# height = "80%"
+
+# [[keys.command]]
+# key = "prefix+t"
+# type = "popup"
+# command = "exec \"${SHELL:-sh}\""
+# description = "open scratch terminal"
+# width = "80%"
+# height = "80%"
+
+[ui]
+status_indicators = "symbols"
+tab_bar_position = "top"
+tab_bar_right = [
+  { type = "zoom" },
+  { type = "hostname" },
+  { type = "datetime", format = "%H:%M" },
+]
+tab_bar_right_separator = " · "
+window_title = "{hostname}: {workspace}"
+
+[ui.toast]
+delivery = "terminal"
+delay_seconds = 1
+
+[ui.toast.herdr]
+position = "bottom-right"
+
+[session]
+resume_agents_on_restore = true
+startup_per_agent_delay_ms = 100
+
+[remote]
+manage_ssh_config = true

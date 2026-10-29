@@ -1,5 +1,9 @@
-<b><span size="large">v26.0</span></b>
+<b><span size="large">Current: v27.1</span></b>
+- Bug fixes
+    - No property vertical on StBoxLayout.
+    - Remove deprecated code (Gnome 51)
 
+<b><span size="large">Previous: v26.3</span></b>
 - Add two new IP API service options:
     - ipapi.co
     - ipwhois.io
