@@ -1,0 +1,23 @@
+ConfigFile = '/home/trinhquyetchien/.config/lazysql/config.toml'
+
+[application]
+DefaultPageSize = 300
+DisableSidebar = false
+SidebarOverlay = false
+MaxQueryHistoryPerConnection = 100
+TreeWidth = 30
+JSONViewerWordWrap = false
+
+[[database]]
+Name = 'OnisCalander'
+URL = 'postgresql://postgres:trinhquyetchien2005@gmail.com@db.askdyeijbpyhkdeyaund.supabase.co:5432/postgres'
+Provider = 'postgres'
+Username = ''
+Password = ''
+Hostname = ''
+Port = ''
+DBName = 'postgres'
+URLParams = ''
+ReadOnly = false
+Schemas = []
+Commands = []

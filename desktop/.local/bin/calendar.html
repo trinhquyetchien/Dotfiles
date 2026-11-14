@@ -551,6 +551,34 @@
         pointer-events: none;
         z-index: 50;
         border-radius: var(--radius);
+        overflow: hidden;
+        box-sizing: border-box;
+      }
+
+      .drag-ghost-time-top {
+        position: absolute;
+        top: 2px;
+        left: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #ffffff;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        line-height: 1.2;
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      .drag-ghost-time-bottom {
+        position: absolute;
+        bottom: 2px;
+        left: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #ffffff;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        line-height: 1.2;
+        pointer-events: none;
+        z-index: 2;
       }
 
       input[type="date"] {
@@ -1057,6 +1085,22 @@
                   ghost.className = "drag-ghost";
                   ghost.style.top = segTop + "px";
                   ghost.style.height = segHeight + "px";
+
+                  const sH = String(segStart.getHours()).padStart(2, '0');
+                  const sM = String(segStart.getMinutes()).padStart(2, '0');
+                  const isMidnight = segEnd.getTime() === colEnd.getTime();
+                  const eH = isMidnight ? "24" : String(segEnd.getHours()).padStart(2, '0');
+                  const eM = isMidnight ? "00" : String(segEnd.getMinutes()).padStart(2, '0');
+
+                  if (segHeight < 36) {
+                    ghost.innerHTML = `<div class="drag-ghost-time-top" style="white-space: nowrap;">${sH}:${sM} - ${eH}:${eM}</div>`;
+                  } else {
+                    ghost.innerHTML = `
+                      <div class="drag-ghost-time-top">${sH}:${sM}</div>
+                      <div class="drag-ghost-time-bottom">${eH}:${eM}</div>
+                    `;
+                  }
+
                   col.appendChild(ghost);
                 }
               }
@@ -1263,7 +1307,11 @@
                 if (!window.dropPlaceholder) {
                   window.dropPlaceholder = document.createElement("div");
                   window.dropPlaceholder.className = "drag-ghost";
-                  window.dropPlaceholder.innerHTML = '<div class="drag-ghost-title" style="padding: 6px 8px; color: white; font-weight: 600; font-size: 13px; text-shadow: 0 1px 2px rgba(0,0,0,0.8);"></div>';
+                  window.dropPlaceholder.innerHTML = `
+                    <div class="drag-ghost-time-top"></div>
+                    <div class="drag-ghost-title" style="padding: 16px 8px 6px; color: white; font-weight: 600; font-size: 13px; text-shadow: 0 1px 2px rgba(0,0,0,0.8); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></div>
+                    <div class="drag-ghost-time-bottom"></div>
+                  `;
                 }
 
                 if (window.dropPlaceholder.parentElement !== col) {
@@ -1277,16 +1325,35 @@
                 const eH = String(currentEndDt.getHours()).padStart(2, '0');
                 const eM = String(currentEndDt.getMinutes()).padStart(2, '0');
 
+                const topTimeEl = window.dropPlaceholder.querySelector('.drag-ghost-time-top');
+                const bottomTimeEl = window.dropPlaceholder.querySelector('.drag-ghost-time-bottom');
                 const titleEl = window.dropPlaceholder.querySelector('.drag-ghost-title');
-                if (titleEl) {
-                  titleEl.innerHTML = `${sH}:${sM} - ${eH}:${eM} · ${escapeHtml(ev.title || 'Task')}`;
-                }
 
-                window.dropPlaceholder.style.top = snappedTop + "px";
                 let ghostHeight = height;
                 if (snappedTop + ghostHeight > 24 * PIXELS_PER_HOUR) {
                     ghostHeight = 24 * PIXELS_PER_HOUR - snappedTop;
                 }
+
+                if (ghostHeight < 36) {
+                  if (topTimeEl) topTimeEl.textContent = `${sH}:${sM} - ${eH}:${eM}`;
+                  if (bottomTimeEl) bottomTimeEl.style.display = "none";
+                  if (titleEl) titleEl.style.display = "none";
+                } else {
+                  if (topTimeEl) {
+                    topTimeEl.textContent = `${sH}:${sM}`;
+                    topTimeEl.style.display = "block";
+                  }
+                  if (bottomTimeEl) {
+                    bottomTimeEl.textContent = `${eH}:${eM}`;
+                    bottomTimeEl.style.display = "block";
+                  }
+                  if (titleEl) {
+                    titleEl.textContent = ev.title || 'Task';
+                    titleEl.style.display = "block";
+                  }
+                }
+
+                window.dropPlaceholder.style.top = snappedTop + "px";
                 window.dropPlaceholder.style.height = ghostHeight + "px";
                 window.dropPlaceholder.style.display = "block";
               }

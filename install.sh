@@ -53,9 +53,9 @@ while [[ $# -gt 0 ]]; do
             echo -e "${BOLD}Sử dụng:${RESET} $0 [OPTIONS]"
             echo ""
             echo "Tuỳ chọn:"
-            echo "  (mặc định)        Khôi phục toàn diện (Hệ thống, CLI, Dev Tools, SDK, DB, GUI App, Dotfiles)"
+            echo "  (mặc định)        Khôi phục toàn diện (Hệ thống, Dconf, CLI, Dev Tools, SDK, DB, GUI App, Dotfiles)"
             echo "  --cli-only        Chỉ khôi phục CLI, Shell, Neovim, Tmux, Runtimes (Bỏ qua Snaps & GUI)"
-            echo "  --stow-only       Chỉ sao lưu và liên kết Dotfiles bằng GNU Stow (Không cài thêm package)"
+            echo "  --stow-only       Chỉ sao lưu và liên kết Dotfiles bằng GNU Stow + nạp Dconf (Không cài thêm package)"
             echo "  --no-snap         Bỏ qua cài đặt các ứng dụng Snap"
             echo "  --no-db           Bỏ qua cài đặt cơ sở dữ liệu (PostgreSQL, MySQL, Redis)"
             echo "  -h, --help        Hiển thị hướng dẫn này"
@@ -103,55 +103,51 @@ check_sudo() {
     while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 }
 
-# ==============================================================================
-# BẮT ĐẦU QUÁ TRÌNH KHÔI PHỤC
-# ==============================================================================
+# --- STOW MODULES & BACKUP TARGETS ---
+STOW_MODULES=(
+    zsh
+    tmux
+    starship
+    wezterm
+    nvim
+    herdr
+    libinput
+    desktop
+    systemd
+    gnome-extensions
+    fcitx5
+    git
+    btop
+    lazysql
+    look
+)
 
-clear || true
-echo -e "${CYAN}${BOLD}"
-cat << "EOF"
-  ____       _    __ _ _           
- |  _ \  ___| |_ / _(_) | ___  ___ 
- | | | |/ _ \ __| |_| | |/ _ \/ __|
- | |_| | (_) | |_|  _| | |  __/\__ \
- |____/ \___/ \__|_| |_|_|\___||___/
- Automated Backup & Environment Restore
-EOF
-echo -e "${RESET}"
-info "Bắt đầu khôi phục môi trường từ thư mục: ${BOLD}$DOTFILES_DIR${RESET}"
-info "Chế độ thực thi: ${BOLD}${MODE}${RESET}"
-[ -n "$SKIP_SNAP" ] && info "Bỏ qua Snap: ${BOLD}CÓ${RESET}"
-[ -n "$SKIP_DB" ] && info "Bỏ qua Database: ${BOLD}CÓ${RESET}"
+TARGETS_TO_BACKUP=(
+    ".zshrc" ".zsh" ".bashrc" ".tmux.conf" ".tmux"
+    ".gitconfig"
+    ".config/starship.toml" ".config/wezterm" ".config/nvim"
+    ".config/herdr"
+    ".config/fcitx5"
+    ".config/btop"
+    ".config/lazysql"
+    ".look"
+    ".config/libinput-gestures.conf" ".config/mpv"
+    ".config/autostart/md-tray-app.desktop"
+    ".config/systemd/user/syncthing.service"
+    ".local/bin/md_tray_app.py" ".local/bin/movie"
+)
 
-# ==============================================================================
-# NẾU CHỈ STOW (STOW ONLY)
-# ==============================================================================
-if [ "$MODE" = "stow" ]; then
-    step "STOW" "Sao lưu cấu hình cũ & Liên kết Dotfiles bằng GNU Stow"
-    if ! has_command "stow"; then
-        check_sudo
-        install_apt stow
-    fi
+backup_and_stow() {
     mkdir -p "$BACKUP_DIR"
-    
-    # Danh sách các file/thư mục cần kiểm tra để backup
-    targets=(
-        ".zshrc" ".zsh" ".bashrc" ".tmux.conf" ".tmux"
-        ".config/starship.toml" ".config/wezterm" ".config/nvim"
-        ".config/herdr"
-        ".config/libinput-gestures.conf" ".config/mpv"
-        ".config/autostart/md-tray-app.desktop"
-        ".config/systemd/user/syncthing.service"
-        ".local/bin/md_tray_app.py" ".local/bin/movie"
-    )
+    info "Đang kiểm tra và sao lưu an toàn các cấu hình cũ (nếu có) sang $BACKUP_DIR..."
 
-    for item in "${targets[@]}"; do
+    for item in "${TARGETS_TO_BACKUP[@]}"; do
         dest="$HOME/$item"
         if [ -e "$dest" ] || [ -L "$dest" ]; then
             if [ -L "$dest" ]; then
                 target_link="$(readlink -f "$dest" 2>/dev/null || true)"
                 if [[ "$target_link" == "$DOTFILES_DIR"* ]]; then
-                    continue # Đã link đúng vào dotfiles
+                    continue # Đã symlink chuẩn vào repo
                 fi
                 rm -f "$dest"
             else
@@ -163,10 +159,24 @@ if [ "$MODE" = "stow" ]; then
         fi
     done
 
-    mkdir -p "$HOME/.local/bin" "$HOME/.config/autostart" "$HOME/.config/systemd/user" "$HOME/.config/mpv" "$HOME/.config/herdr" "$HOME/.local/share/gnome-shell/extensions"
+    # Chuẩn bị sẵn các thư mục mục tiêu
+    mkdir -p "$HOME/.local/bin" \
+             "$HOME/.local/share/icons" \
+             "$HOME/.local/share/gnome-shell/extensions" \
+             "$HOME/.config/autostart" \
+             "$HOME/.config/systemd/user" \
+             "$HOME/.config/mpv" \
+             "$HOME/.config/herdr" \
+             "$HOME/.config/fcitx5" \
+             "$HOME/.config/btop" \
+             "$HOME/.config/lazysql" \
+             "$HOME/.look" \
+             "$HOME/Pictures/Wallpaper" \
+             "$HOME/Note/Daily"
+
     chmod +x "$DOTFILES_DIR"/desktop/.local/bin/* 2>/dev/null || true
 
-    # Sao lưu extension cũ nếu có xung đột và chuẩn bị liên kết
+    # Sao lưu extension cũ nếu có xung đột trước khi stow gnome-extensions
     if [ -d "$DOTFILES_DIR/gnome-extensions/.local/share/gnome-shell/extensions" ]; then
         for ext_path in "$DOTFILES_DIR/gnome-extensions/.local/share/gnome-shell/extensions"/*; do
             ext_name="$(basename "$ext_path")"
@@ -188,13 +198,52 @@ if [ "$MODE" = "stow" ]; then
     fi
 
     cd "$DOTFILES_DIR"
-    for module in zsh tmux starship wezterm nvim herdr libinput desktop systemd gnome-extensions; do
+    for module in "${STOW_MODULES[@]}"; do
         if [ -d "$module" ]; then
             stow -v -R -t "$HOME" "$module"
-            success "Stow thành công: $module"
+            success "Stow thành công module: $module"
         fi
     done
-    success "🎉 Quá trình Stow hoàn tất!"
+
+    # Khôi phục Dconf GNOME Settings nếu có file cấu hình
+    if [ -f "$DOTFILES_DIR/dconf/dconf-settings.ini" ] && has_command "dconf"; then
+        info "Đang nạp toàn bộ Dconf GNOME Settings từ dconf/dconf-settings.ini..."
+        dconf load / < "$DOTFILES_DIR/dconf/dconf-settings.ini" 2>/dev/null || true
+        success "Đã khôi phục cài đặt GNOME Desktop, phím tắt & extensions qua dconf!"
+    fi
+}
+
+# ==============================================================================
+# BẮT ĐẦU QUÁ TRÌNH KHÔI PHỤC
+# ==============================================================================
+
+clear || true
+echo -e "${CYAN}${BOLD}"
+cat << 'BANNER'
+  ____       _    __ _ _           
+ |  _ \  ___| |_ / _(_) | ___  ___ 
+ | | | |/ _ \ __| |_| | |/ _ \/ __|
+ | |_| | (_) | |_|  _| | |  __/\__ \
+ |____/ \___/ \__|_| |_|_|\___||___/
+ Automated Backup & Environment Restore
+BANNER
+echo -e "${RESET}"
+info "Bắt đầu khôi phục môi trường từ thư mục: ${BOLD}$DOTFILES_DIR${RESET}"
+info "Chế độ thực thi: ${BOLD}${MODE}${RESET}"
+[ -n "$SKIP_SNAP" ] && info "Bỏ qua Snap: ${BOLD}CÓ${RESET}"
+[ -n "$SKIP_DB" ] && info "Bỏ qua Database: ${BOLD}CÓ${RESET}"
+
+# ==============================================================================
+# NẾU CHỈ STOW (STOW ONLY)
+# ==============================================================================
+if [ "$MODE" = "stow" ]; then
+    step "STOW" "Sao lưu cấu hình cũ & Liên kết Dotfiles bằng GNU Stow"
+    if ! has_command "stow"; then
+        check_sudo
+        install_apt stow
+    fi
+    backup_and_stow
+    success "🎉 Quá trình Stow & khôi phục Dconf hoàn tất!"
     exit 0
 fi
 
@@ -214,18 +263,21 @@ install_apt \
     stow \
     unzip \
     tar \
-    ca-certificates \
-    gnupg \
-    software-properties-common \
-    lsb-release \
+    gzip \
+    xz-utils \
     pkg-config \
+    ca-certificates \
+    software-properties-common \
+    dconf-cli \
     xclip \
     wl-clipboard \
     jq \
     gettext \
-    libasound2 \
+    libasound2-dev \
     libpulse0 \
-    libgl1
+    libgl1 \
+    tree \
+    ncdu
 
 # Hỗ trợ FUSE AppImage (Ubuntu 24.04+ dùng libfuse2t64, cũ hơn dùng libfuse2)
 sudo apt-get install -y libfuse2t64 2>/dev/null || sudo apt-get install -y libfuse2 2>/dev/null || true
@@ -237,7 +289,7 @@ success "Hệ thống cơ sở và build tools đã sẵn sàng."
 # ==============================================================================
 step "2/10" "Cài đặt Zsh, Tmux & Modern CLI Utilities"
 
-install_apt zsh tmux fzf ripgrep btop bat translate-shell entr watchman
+install_apt zsh tmux fzf ripgrep btop bat translate-shell entr watchman rclone
 
 # Liên kết batcat -> bat & fdfind -> fd
 mkdir -p "$HOME/.local/bin"
@@ -282,9 +334,9 @@ fi
 success "Shell và các công cụ Modern CLI đã cài đặt xong."
 
 # ==============================================================================
-# STEP 3: DEVELOPER CLI TOOLS (GitHub Releases)
+# STEP 3: DEVELOPER CLI TOOLS (GitHub Releases & Package managers)
 # ==============================================================================
-step "3/10" "Cài đặt Developer CLI Tools (Lazygit, Lazydocker, Lazysql, Yazi)"
+step "3/10" "Cài đặt Developer CLI Tools (Lazygit, Lazydocker, Lazysql, Yazi, Glow, UV, Superfile)"
 
 # 1. Lazygit
 if ! has_command "lazygit"; then
@@ -301,11 +353,12 @@ fi
 
 # 2. Lazydocker
 if ! has_command "lazydocker"; then
-    info "Đang cài đặt Lazydocker..."
+    info "Đang tải Lazydocker..."
     curl -fsSL https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | bash
     if [ -f "$HOME/.local/bin/lazydocker" ]; then
-        sudo cp "$HOME/.local/bin/lazydocker" /usr/local/bin/lazydocker
+        sudo cp "$HOME/.local/bin/lazydocker" /usr/local/bin/lazydocker 2>/dev/null || true
     fi
+    success "Lazydocker đã cài thành công."
 fi
 
 # 3. Lazysql
@@ -318,7 +371,7 @@ if ! has_command "lazysql"; then
     success "Lazysql đã cài thành công."
 fi
 
-# 4. Yazi (File Manager)
+# 4. Yazi (Modern Terminal File Manager)
 if ! has_command "yazi"; then
     info "Đang tải Yazi..."
     curl -fsSL "https://github.com/sxyazi/yazi/releases/latest/download/yazi-x86_64-unknown-linux-gnu.deb" -o /tmp/yazi.deb
@@ -329,7 +382,31 @@ if ! has_command "yazi"; then
     fi
 fi
 
-# 5. scrcpy (Screen copy cho Android)
+# 5. Glow (Markdown CLI reader)
+if ! has_command "glow"; then
+    info "Đang cài đặt Glow..."
+    sudo mkdir -p /etc/apt/keyrings
+    curl -fsSL https://repo.charm.sh/apt/gpg.key | sudo gpg --yes --dearmor -o /etc/apt/keyrings/charm.gpg
+    echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list
+    sudo apt-get update && sudo apt-get install -y glow || true
+fi
+
+# 6. uv & uvx (Fast Python package manager)
+if ! has_command "uv"; then
+    info "Đang cài đặt uv & uvx..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh || true
+fi
+
+# 7. Superfile (Terminal File Manager)
+if ! has_command "spf"; then
+    info "Đang cài đặt Superfile (spf)..."
+    bash -c "$(curl -sLo- https://superfile.netlify.app/install.sh)" || true
+fi
+
+# 8. GitHub CLI (gh)
+install_apt gh
+
+# 9. scrcpy (Screen copy cho Android)
 install_apt scrcpy
 
 success "Developer CLI Tools đã cài đặt thành công."
@@ -399,9 +476,9 @@ if [ ! -d "$FONT_DIR" ] || [ -z "$(ls -A "$FONT_DIR" 2>/dev/null)" ]; then
     success "Đã cài xong JetBrainsMono Nerd Font."
 fi
 
-# 2. Fcitx5 (Vietnamese Bamboo + Japanese Mozc)
-info "Cài đặt Fcitx5, Bamboo, Mozc..."
-install_apt fcitx5 fcitx5-mozc fcitx5-bamboo fcitx5-config-qt
+# 2. Fcitx5 (Vietnamese Bamboo + Japanese Mozc + Chinese Pinyin + Unikey)
+info "Cài đặt Fcitx5, Bamboo, Unikey, Mozc, Pinyin..."
+install_apt fcitx5 fcitx5-mozc fcitx5-bamboo fcitx5-unikey fcitx5-pinyin fcitx5-config-qt
 im-config -n fcitx5 >/dev/null 2>&1 || true
 
 success "Font chữ và bộ gõ Fcitx5 đã sẵn sàng."
@@ -412,7 +489,7 @@ success "Font chữ và bộ gõ Fcitx5 đã sẵn sàng."
 step "6/10" "Cài đặt Touchpad Gestures, MPV & Custom Desktop Tools"
 
 # 1. Gestures
-install_apt libinput-tools xdotool ydotool gnome-tweaks gnome-shell-extension-manager
+install_apt libinput-tools xdotool ydotool touchegg gnome-tweaks gnome-shell-extension-manager
 sudo gpasswd -a "$USER" input >/dev/null 2>&1 || true
 
 if ! has_command "libinput-gestures"; then
@@ -436,12 +513,24 @@ install_apt \
 python3 -m pip install --break-system-packages markdown-it-py 2>/dev/null || \
 python3 -m pip install markdown-it-py 2>/dev/null || true
 
+# 3. Look Desktop Launcher (Keyboard-first desktop spotlight)
+if ! has_command "lookapp"; then
+    info "Đang cài đặt Look Desktop Launcher..."
+    LOOK_DEB_URL="$(curl -fsSL https://api.github.com/repos/kunkka19xx/look/releases/latest | grep "browser_download_url.*amd64.deb" | cut -d '"' -f 4 | head -n 1)"
+    if [ -n "$LOOK_DEB_URL" ]; then
+        curl -fsSLo /tmp/look.deb "$LOOK_DEB_URL"
+        sudo apt-get install -y /tmp/look.deb 2>/dev/null || true
+        rm -f /tmp/look.deb
+        success "Look Desktop Launcher đã được cài đặt."
+    fi
+fi
+
 success "Touchpad Gestures và Desktop Tools đã sẵn sàng."
 
 # ==============================================================================
-# STEP 7: RUNTIMES & SDKS (Node.js, Java, Kotlin, Android, Docker)
+# STEP 7: RUNTIMES & SDKS (Node.js, Java, Kotlin, Android, Docker, Rust, Go)
 # ==============================================================================
-step "7/10" "Cài đặt Runtimes & SDKs (FNM, Node 22, SDKMAN, Java, Android, Docker)"
+step "7/10" "Cài đặt Runtimes & SDKs (FNM, Node 22, SDKMAN, Java, Rust, Go, Android, Docker)"
 
 # 1. FNM & Node.js
 if ! has_command "fnm"; then
@@ -480,7 +569,17 @@ if [ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ]; then
     sdk install maven || true
 fi
 
-# 3. Android SDK Command-line Tools
+# 3. Rust & Cargo
+if ! has_command "cargo"; then
+    info "Đang cài đặt Rust & Cargo..."
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    [ -f "$HOME/.cargo/env" ] && source "$HOME/.cargo/env"
+fi
+
+# 4. Go (Golang)
+install_apt golang-go
+
+# 5. Android SDK Command-line Tools
 ANDROID_ROOT="$HOME/Android/Sdk"
 CMD_LINE_TOOLS_DIR="$ANDROID_ROOT/cmdline-tools"
 if [ ! -d "$CMD_LINE_TOOLS_DIR/latest" ]; then
@@ -498,7 +597,7 @@ if [ ! -d "$CMD_LINE_TOOLS_DIR/latest" ]; then
     fi
 fi
 
-# 4. Docker Engine & Compose
+# 6. Docker Engine & Compose
 if ! has_command "docker"; then
     info "Đang cài đặt Docker Engine chính thức..."
     curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
@@ -584,84 +683,11 @@ fi
 # ==============================================================================
 # STEP 10: LIÊN KẾT CẤU HÌNH BẰNG GNU STOW & KÍCH HOẠT DỊCH VỤ
 # ==============================================================================
-step "10/10" "Sao lưu an toàn & Liên kết toàn bộ Dotfiles (GNU Stow)"
+step "10/10" "Sao lưu an toàn, Liên kết GNU Stow & Khôi phục Dconf GNOME"
 
-# 1. Tạo các thư mục đệm mục tiêu
-mkdir -p "$HOME/.local/bin"
-mkdir -p "$HOME/.config/autostart"
-mkdir -p "$HOME/.config/systemd/user"
-mkdir -p "$HOME/.config/mpv"
-mkdir -p "$HOME/.config/herdr"
-mkdir -p "$HOME/.local/share/gnome-shell/extensions"
-mkdir -p "$HOME/Note/Daily"
-mkdir -p "$BACKUP_DIR"
+backup_and_stow
 
-# 2. Danh sách các file cấu hình cần kiểm tra và sao lưu an toàn
-targets=(
-    ".zshrc" ".zsh" ".bashrc" ".tmux.conf" ".tmux"
-    ".config/starship.toml" ".config/wezterm" ".config/nvim"
-    ".config/herdr"
-    ".config/libinput-gestures.conf" ".config/mpv"
-    ".config/autostart/md-tray-app.desktop"
-    ".config/systemd/user/syncthing.service"
-    ".local/bin/md_tray_app.py" ".local/bin/movie"
-)
-
-info "Đang kiểm tra và sao lưu cấu hình cũ (nếu có) sang $BACKUP_DIR..."
-for item in "${targets[@]}"; do
-    dest="$HOME/$item"
-    if [ -e "$dest" ] || [ -L "$dest" ]; then
-        if [ -L "$dest" ]; then
-            target_link="$(readlink -f "$dest" 2>/dev/null || true)"
-            if [[ "$target_link" == "$DOTFILES_DIR"* ]]; then
-                continue # Đã link vào Dotfiles hiện tại
-            fi
-            rm -f "$dest"
-        else
-            backup_target="$BACKUP_DIR/$item"
-            mkdir -p "$(dirname "$backup_target")"
-            mv "$dest" "$backup_target"
-            warn "Đã sao lưu: $dest -> $backup_target"
-        fi
-    fi
-done
-
-# 3. Cấp quyền thực thi cho các script trong Dotfiles
-chmod +x "$DOTFILES_DIR"/desktop/.local/bin/* 2>/dev/null || true
-
-# 4. Sao lưu extension cũ nếu có xung đột và chuẩn bị liên kết
-if [ -d "$DOTFILES_DIR/gnome-extensions/.local/share/gnome-shell/extensions" ]; then
-    for ext_path in "$DOTFILES_DIR/gnome-extensions/.local/share/gnome-shell/extensions"/*; do
-        ext_name="$(basename "$ext_path")"
-        ext_dest="$HOME/.local/share/gnome-shell/extensions/$ext_name"
-        if [ -e "$ext_dest" ] || [ -L "$ext_dest" ]; then
-            if [ -L "$ext_dest" ]; then
-                target_link="$(readlink -f "$ext_dest" 2>/dev/null || true)"
-                if [[ "$target_link" == "$DOTFILES_DIR"* ]]; then
-                    continue
-                fi
-                rm -rf "$ext_dest"
-            else
-                mkdir -p "$BACKUP_DIR/.local/share/gnome-shell/extensions"
-                mv "$ext_dest" "$BACKUP_DIR/.local/share/gnome-shell/extensions/"
-                warn "Đã sao lưu extension cũ: $ext_name -> $BACKUP_DIR"
-            fi
-        fi
-    done
-fi
-
-# 5. Thực thi GNU Stow
-cd "$DOTFILES_DIR"
-modules=(zsh tmux starship wezterm nvim herdr libinput desktop systemd gnome-extensions)
-
-for mod in "${modules[@]}"; do
-    if [ -d "$mod" ]; then
-        stow -v -R -t "$HOME" "$mod"
-        success "Đã liên kết module: $mod"
-    fi
-done
-
-# 6. Kích hoạt user service cho Syncthing
+# Kích hoạt user service cho Syncthing
 if has_command "syncthing"; then
     info "Đang kích hoạt Syncthing user systemd service..."
     systemctl --user daemon-reload >/dev/null 2>&1 || true
@@ -669,21 +695,13 @@ if has_command "syncthing"; then
     systemctl --user start syncthing.service >/dev/null 2>&1 || true
 fi
 
-# 7. Pre-sync Neovim Plugins (Headless Lazy sync)
+# Pre-sync Neovim Plugins (Headless Lazy sync)
 if has_command "nvim"; then
     info "Đang tự động tải các plugin Neovim bằng lazy.nvim (headless)..."
     nvim --headless "+Lazy! sync" +qa >/dev/null 2>&1 || true
 fi
 
-# ==============================================================================
-# HOÀN TẤT
-# ==============================================================================
-echo -e "\n${GREEN}${BOLD}===================================================================${RESET}"
-echo -e "${GREEN}${BOLD}🎉 CHÚC MỪNG! TOÀN BỘ MÔI TRƯỜNG ĐÃ ĐƯỢC KHÔI PHỤC HOÀN TOÀN!${RESET}"
-echo -e "${GREEN}${BOLD}===================================================================${RESET}\n"
-
-echo -e "${BOLD}Các bước tiếp theo bạn nên làm:${RESET}"
-echo -e " 1. ${CYAN}Đăng xuất (Log out) hoặc khởi động lại (Reboot)${RESET} để áp dụng Shell Zsh, nhóm Docker & Input gestures."
-echo -e " 2. Mở ${BOLD}WezTerm${RESET} (Ctrl+Alt+T) hoặc gõ ${BOLD}nvim${RESET} để bắt đầu lập trình."
-echo -e " 3. Mở ${BOLD}tmux${RESET} và nhấn ${BOLD}Ctrl-a + I${RESET} (viết hoa) để tải các plugin tmux (nếu cần)."
-echo -e " 4. File sao lưu cấu hình cũ của bạn (nếu có) được lưu an toàn tại: ${BOLD}$BACKUP_DIR${RESET}\n"
+success "\n==================================================================="
+success "🎉 CHÚC MỪNG! MÔI TRƯỜNG ĐÃ ĐƯỢC KHÔI PHỤC TOÀN DIỆN & CHÍNH XÁC 100%!"
+success "===================================================================\n"
+info "Khuyến nghị: Bạn nên đăng xuất (logout) hoặc khởi động lại máy để nạp đầy đủ Shell, Fcitx5, Extensions và Dconf."

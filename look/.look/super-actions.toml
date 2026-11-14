@@ -1,0 +1,88 @@
+# Your Super Actions strip - the screen shown when the search bar is empty.
+#
+# Each line below is a row, and each token is one cell. Repeat a name across
+# cells to make that tile span them; its cells must form a rectangle. Use "."
+# for a deliberate gap. Every row needs the same number of tokens.
+#
+# There is no column or row count to declare: the drawing is the count, up to
+# 5 rows and 6 columns. Delete this file to go back to these defaults.
+
+layout = [
+    "lslot       lslot       bluetooth   wifi        battery     weather",
+    "lslot       lslot       theme       keepawake   screensaver weather",
+    "mic         restart     shutdown    nowplaying  nowplaying  nowplaying",
+]
+
+# The built-in tiles, the key that fires each one (with Cmd on macOS, Alt
+# elsewhere), and the smallest area it can be drawn in:
+#
+#   lslot        the rotating Todo / Pomo / Clock slot    no key  2x2
+#   bluetooth    toggle                                   B       1x1
+#   wifi         toggle                                   W       1x1
+#   battery      read-only level                          no key  1x1
+#   theme        toggle, dark / light                     T       1x1
+#   keepawake    toggle                                   K       1x1
+#   screensaver  starts it                                S       1x1
+#   weather      read-only condition + temperature        no key  1x2
+#   mic          mute / unmute                            M       1x1
+#   restart      asks first                               R       1x1
+#   shutdown     asks first                               D       1x1
+#   nowplaying   track name + play/pause                  P       2x1
+#
+# Columns x rows. Bigger is fine; smaller is left out with a warning, since a
+# tile under its minimum clips rather than shrinks.
+#
+# Deleting a name removes that tile and leaves a gap where it was - the layout
+# is yours to arrange, so nothing closes up behind it.
+#
+# Up to 5 rows and 6 columns. More are ignored, with a warning on the next open.
+
+
+# ---------------------------------------------------------------- your own --
+#
+# A tile of your own is a name in the drawing above plus an entry here. Nothing
+# needs to change in ~/.look/sources/ - a tile is declared whole, right here.
+#
+#     layout = [
+#         "lslot       lslot       bluetooth   wifi        battery     weather",
+#         "lslot       lslot       theme       keepawake   screensaver weather",
+#         "meeting     meeting     shutdown    nowplaying  nowplaying  nowplaying",
+#     ]
+#
+#     [tiles.meeting]
+#     value    = "~/.look/bin/meeting-next"    # prints the JSON below
+#     refresh  = "60s"                         # how stale it may get
+#     press    = "~/.look/bin/meeting-join"    # optional: what pressing it runs
+#     confirm  = "Join the meeting?"           # optional: asked before press
+#     title    = "Next up"                     # optional: else the name, cased
+#     icon     = "calendar"                    # optional: the symbol drawn on it
+#     mnemonic = "N"                           # optional: Cmd+N / Alt+N
+#
+# `value` prints one JSON object. Only `value` is required, so a one-liner is a
+# whole tile:
+#
+#     {"value": "in 24m"}
+#
+# A tile with room can say as much as Weather does:
+#
+#     {"value":   "in 24m",
+#      "caption": "PLATFORM WEEKLY",
+#      "lines":   ["3 attendees", "Zoom"],
+#      "icon":    "calendar",
+#      "state":   "on"}
+#
+# The caption and the extra lines only show on a tile drawn bigger than one
+# cell, because there is nowhere to put them otherwise.
+#
+# Printing nothing hides the tile: that is how a "next meeting" tile disappears
+# on a day with no meetings.
+#
+# Keep `value` light. It runs unattended, so it is capped at two seconds and
+# 16 KB - past that it is killed, along with anything it started, and the tile
+# keeps its last good reading. Read something and print it. Anything that has to
+# fetch, build or wait belongs behind `press`, or in a script that caches to a
+# file this only reads.
+#
+# A letter already used by a tile on the screen is not given away, and Cmd+Q
+# belongs to quitting Look. Either way the tile still works, it just has no key,
+# and the reason is reported on the next open.

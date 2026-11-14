@@ -60,3 +60,6 @@ fi
 # Aliases to quickly open MarkdownTray calendar and today's task note
 alias calendar='pkill -SIGHUP -f "([m]d_tray_app\\.py|[M]arkdownTray)" 2>/dev/null || (python3 "$HOME/.local/bin/md_tray_app.py" --calendar >/dev/null 2>&1 &!)'
 alias task='pkill -SIGUSR2 -f "([m]d_tray_app\\.py|[M]arkdownTray)" 2>/dev/null || (python3 "$HOME/.local/bin/md_tray_app.py" --task >/dev/null 2>&1 &!)'
+
+# Generated for envman. Do not edit.
+[ -s "$HOME/.config/envman/load.sh" ] && source "$HOME/.config/envman/load.sh"
