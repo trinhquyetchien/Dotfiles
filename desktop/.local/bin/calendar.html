@@ -551,34 +551,40 @@
         pointer-events: none;
         z-index: 50;
         border-radius: var(--radius);
-        overflow: hidden;
         box-sizing: border-box;
       }
 
-      .drag-ghost-time-top {
+      .drag-time-badge {
         position: absolute;
-        top: 2px;
-        left: 6px;
-        font-size: 11px;
-        font-weight: 700;
-        color: #ffffff;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-        line-height: 1.2;
+        left: 0;
+        right: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         pointer-events: none;
         z-index: 2;
       }
 
-      .drag-ghost-time-bottom {
-        position: absolute;
-        bottom: 2px;
-        left: 6px;
-        font-size: 11px;
-        font-weight: 700;
-        color: #ffffff;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-        line-height: 1.2;
-        pointer-events: none;
+      .drag-time-badge.top {
+        top: -8px;
+      }
+
+      .drag-time-badge.bottom {
+        bottom: -8px;
+      }
+
+      .drag-time-badge span {
+        position: relative;
         z-index: 2;
+        background: var(--bg-main);
+        color: #0a84ff;
+        border: 1px solid var(--btn-primary);
+        font-size: 10px;
+        font-weight: 700;
+        padding: 0px 5px;
+        border-radius: 4px;
+        line-height: 14px;
+        white-space: nowrap;
       }
 
       input[type="date"] {
@@ -1092,12 +1098,12 @@
                   const eH = isMidnight ? "24" : String(segEnd.getHours()).padStart(2, '0');
                   const eM = isMidnight ? "00" : String(segEnd.getMinutes()).padStart(2, '0');
 
-                  if (segHeight < 36) {
-                    ghost.innerHTML = `<div class="drag-ghost-time-top" style="white-space: nowrap;">${sH}:${sM} - ${eH}:${eM}</div>`;
+                  if (segHeight < 28) {
+                    ghost.innerHTML = `<div class="drag-time-badge top"><span>${sH}:${sM} - ${eH}:${eM}</span></div>`;
                   } else {
                     ghost.innerHTML = `
-                      <div class="drag-ghost-time-top">${sH}:${sM}</div>
-                      <div class="drag-ghost-time-bottom">${eH}:${eM}</div>
+                      <div class="drag-time-badge top"><span>${sH}:${sM}</span></div>
+                      <div class="drag-time-badge bottom"><span>${eH}:${eM}</span></div>
                     `;
                   }
 
@@ -1308,9 +1314,9 @@
                   window.dropPlaceholder = document.createElement("div");
                   window.dropPlaceholder.className = "drag-ghost";
                   window.dropPlaceholder.innerHTML = `
-                    <div class="drag-ghost-time-top"></div>
-                    <div class="drag-ghost-title" style="padding: 16px 8px 6px; color: white; font-weight: 600; font-size: 13px; text-shadow: 0 1px 2px rgba(0,0,0,0.8); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></div>
-                    <div class="drag-ghost-time-bottom"></div>
+                    <div class="drag-time-badge top"><span class="drag-ghost-start-time"></span></div>
+                    <div class="drag-ghost-title" style="padding: 10px 8px 6px; color: white; font-weight: 600; font-size: 13px; text-shadow: 0 1px 2px rgba(0,0,0,0.8); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></div>
+                    <div class="drag-time-badge bottom"><span class="drag-ghost-end-time"></span></div>
                   `;
                 }
 
@@ -1325,8 +1331,10 @@
                 const eH = String(currentEndDt.getHours()).padStart(2, '0');
                 const eM = String(currentEndDt.getMinutes()).padStart(2, '0');
 
-                const topTimeEl = window.dropPlaceholder.querySelector('.drag-ghost-time-top');
-                const bottomTimeEl = window.dropPlaceholder.querySelector('.drag-ghost-time-bottom');
+                const topBadge = window.dropPlaceholder.querySelector('.drag-time-badge.top');
+                const bottomBadge = window.dropPlaceholder.querySelector('.drag-time-badge.bottom');
+                const topTimeEl = window.dropPlaceholder.querySelector('.drag-ghost-start-time');
+                const bottomTimeEl = window.dropPlaceholder.querySelector('.drag-ghost-end-time');
                 const titleEl = window.dropPlaceholder.querySelector('.drag-ghost-title');
 
                 let ghostHeight = height;
@@ -1334,19 +1342,16 @@
                     ghostHeight = 24 * PIXELS_PER_HOUR - snappedTop;
                 }
 
-                if (ghostHeight < 36) {
+                if (ghostHeight < 28) {
+                  if (topBadge) topBadge.style.display = "flex";
                   if (topTimeEl) topTimeEl.textContent = `${sH}:${sM} - ${eH}:${eM}`;
-                  if (bottomTimeEl) bottomTimeEl.style.display = "none";
+                  if (bottomBadge) bottomBadge.style.display = "none";
                   if (titleEl) titleEl.style.display = "none";
                 } else {
-                  if (topTimeEl) {
-                    topTimeEl.textContent = `${sH}:${sM}`;
-                    topTimeEl.style.display = "block";
-                  }
-                  if (bottomTimeEl) {
-                    bottomTimeEl.textContent = `${eH}:${eM}`;
-                    bottomTimeEl.style.display = "block";
-                  }
+                  if (topBadge) topBadge.style.display = "flex";
+                  if (topTimeEl) topTimeEl.textContent = `${sH}:${sM}`;
+                  if (bottomBadge) bottomBadge.style.display = "flex";
+                  if (bottomTimeEl) bottomTimeEl.textContent = `${eH}:${eM}`;
                   if (titleEl) {
                     titleEl.textContent = ev.title || 'Task';
                     titleEl.style.display = "block";

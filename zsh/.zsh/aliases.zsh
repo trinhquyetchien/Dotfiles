@@ -5,7 +5,6 @@ alias lzd="lazydocker"
 alias lzs="lazysql"
 
 alias ..="cd .."
-alias .="cd"
 alias note=" cd ~/Note; v"
 alias today='cd ~/Note/Daily; nvim "$(date +%Y-%m-%d).md"'
 
