@@ -6,7 +6,6 @@ export function get_refraction_effects(_) {
             class: RefractionEffect,
             name: _("Liquid Glass"),
             description: _("A glossy translucent material with edge refraction, rim lighting, tint, and inner shadow."),
-            is_advanced: false,
             editable_params: {
                 strength: {
                     name: _("Refraction scale"),
@@ -48,6 +47,16 @@ export function get_refraction_effects(_) {
                     big_increment: 0.5,
                     digits: 2
                 },
+                reach: {
+                    name: _("Refraction reach"),
+                    description: _("How far the bend reaches inward from the edge, past the corner radius. A wider bend is also deeper, like a wider bezel (0 keeps it at the rim)."),
+                    type: "float",
+                    min: 0.,
+                    max: 500.,
+                    increment: 1.,
+                    big_increment: 10.,
+                    digits: 0
+                },
                 falloff: {
                     name: _("Glass thickness"),
                     description: _("Depth used by the refraction edge profile."),
@@ -80,7 +89,7 @@ export function get_refraction_effects(_) {
                 },
                 fresnel_angle: {
                     name: _("Fresnel glare angle"),
-                    description: _("Light direction of the fresnel glare, in degrees (0 is from above, positive rotates clockwise)."),
+                    description: _("Direction or axis of the fresnel glare, in degrees (positive rotates clockwise). In two-sided mode, 0 lights the top and bottom edges; in one-sided mode, only the edge facing the light angle is lit (0 for top, 180 for bottom)."),
                     type: "float",
                     min: -180.,
                     max: 180.,
@@ -98,9 +107,34 @@ export function get_refraction_effects(_) {
                     big_increment: 0.5,
                     digits: 2
                 },
+                fresnel_two_sided: {
+                    name: _("Two-sided fresnel glare"),
+                    description: _("Light opposite edge pairs symmetrically. When disabled, only the edge facing the fresnel angle is lit (e.g. 180 lights the bottom edge, removing the glare from the top)."),
+                    type: "boolean"
+                },
                 specular_strength: {
                     name: _("Specular glare strength"),
-                    description: _("Strength of the specular glare showing the light direction (0 disables it)."),
+                    description: _("Strength of the white specular glare on the same edge pair as the fresnel glare, brighter on the light side (0 disables it)."),
+                    type: "float",
+                    min: 0.,
+                    max: 1.,
+                    increment: 0.01,
+                    big_increment: 0.1,
+                    digits: 2
+                },
+                edge_shadow: {
+                    name: _("Edge border"),
+                    description: _("Thin dark line along the straight side edges, away from the fresnel glare, outlining the glass on light backgrounds."),
+                    type: "float",
+                    min: 0.,
+                    max: 1.,
+                    increment: 0.01,
+                    big_increment: 0.1,
+                    digits: 2
+                },
+                edge_glow: {
+                    name: _("Edge glow"),
+                    description: _("Colorful content under the glass lights up its edge."),
                     type: "float",
                     min: 0.,
                     max: 1.,

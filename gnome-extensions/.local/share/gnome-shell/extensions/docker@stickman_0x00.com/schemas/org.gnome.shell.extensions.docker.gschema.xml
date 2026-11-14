@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<schemalist>
+<schemalist gettext-domain="docker@stickman_0x00.com">
 
 	<enum id="org.gnome.shell.extensions.docker.enum-logo">
 		<value value="0" nick="default"/>
@@ -93,6 +93,12 @@
 			<default>5</default>
 			<summary>Counter refresh interval</summary>
 			<description>Delay to refresh the number of containers up. Set to 0 to disable.</description>
+		</key>
+
+		<key name="menu-refresh-timer" type="i">
+			<default>5</default>
+			<summary>Menu refresh interval</summary>
+			<description>Delay to refresh containers state and health while the menu is open. Set to 0 to disable.</description>
 		</key>
 
 		<key name="quicksettings-columns" type="i">

@@ -47,6 +47,7 @@ export default class DockerPreferences extends ExtensionPreferences {
 
 		group_ui.add(this._menu_type());
 		group_ui.add(this._visible_menus());
+		group_ui.add(this._menu_refresh_timer());
 
 		// GROUP: Show/Hide
 		const group_show = new Adw.PreferencesGroup({
@@ -118,216 +119,143 @@ export default class DockerPreferences extends ExtensionPreferences {
 		group_logs.add(this._logs_tail_length());
 	}
 
-	_logs_tail_length() {
+	/**
+	 * Creates a row with title and subtitle from
+	 * the key schema and `widget` as suffix
+	 *
+	 * @param {string} key - the key string from schema
+	 * @param {Gtk.Widget} widget
+	 * @returns {Adw.ActionRow}
+	 */
+	_row(key, widget) {
+		const schema_key = this._settings.settings_schema.get_key(key);
 		const row = new Adw.ActionRow({
-			title: this._settings.settings_schema.get_key("logs-tail-length").get_summary(),
-			subtitle: this._settings.settings_schema.get_key("logs-tail-length").get_description(),
+			title: schema_key.get_summary(),
+			subtitle: this._description(schema_key),
 		});
 
-		const spin = Gtk.SpinButton.new_with_range(0, 100000, 50);
-		spin.set_valign(Gtk.Align.CENTER);
+		widget.set_valign(Gtk.Align.CENTER);
+		row.add_suffix(widget);
+		row.set_activatable_widget(widget);
 
+		return row;
+	}
+
+	/**
+	 * Translated description of a schema key.
+	 * GLib translates it with the paragraph breaks, but xgettext extracts
+	 * multi-paragraph descriptions joined in one line, so try that too.
+	 *
+	 * @param {Gio.SettingsSchemaKey} schema_key
+	 * @returns {string}
+	 */
+	_description(schema_key) {
+		const description = schema_key.get_description();
+		const joined = description.replace(/\s+/g, ' ');
+		const translated = _(joined);
+
+		return translated === joined ? description : translated;
+	}
+
+	/**
+	 * Creates a row with `widget` bound to the key
+	 *
+	 * @param {string} key - the key string from schema
+	 * @param {Gtk.Widget} widget
+	 * @param {string} property - widget property bound to the key
+	 * @returns {Adw.ActionRow}
+	 */
+	_bound_row(key, widget, property) {
 		this._settings.bind(
-			"logs-tail-length",
-			spin,
-			"value",
+			key,
+			widget,
+			property,
 			Gio.SettingsBindFlags.DEFAULT
 		);
 
-		row.add_suffix(spin);
-		row.set_activatable_widget(spin);
+		return this._row(key, widget);
+	}
 
-		return row;
+	_logs_tail_length() {
+		return this._spin("logs-tail-length", 0, 100000, 50);
 	}
 
 	_logo() {
-		const row_logo = new Adw.ActionRow({
-			title: this._settings.settings_schema.get_key("logo").get_summary(),
-			subtitle: this._settings.settings_schema.get_key("logo").get_description(),
-		});
-
-		const dropDown = Gtk.DropDown.new_from_strings([
-			"Default",
-			"Black",
-			"Transparent",
-			"White",
+		return this._dropdown("logo", [
+			_("Default"),
+			_("Black"),
+			_("Transparent"),
+			_("White"),
 		]);
-		dropDown.set_selected(this._settings.get_enum("logo"));
-		dropDown.set_valign(Gtk.Align.CENTER);
-
-		dropDown.connect('notify::selected', () => {
-			let selected = dropDown.get_selected_item().get_string().toLowerCase();
-			this._settings.set_string("logo", selected);
-		});
-
-		row_logo.add_suffix(dropDown);
-		row_logo.activatable_widget = dropDown;
-
-		return row_logo;
 	}
 
 	_up_container_timer() {
-		const row = new Adw.ActionRow({
-			title: this._settings.settings_schema.get_key("up-containers-timer").get_summary(),
-			subtitle: this._settings.settings_schema.get_key("up-containers-timer").get_description(),
-		});
+		return this._spin("up-containers-timer", 0, 60, 5);
+	}
 
-		const spin = Gtk.SpinButton.new_with_range(0, 60, 5);
-		spin.set_valign(Gtk.Align.CENTER);
-
-		this._settings.bind(
-			"up-containers-timer",
-			spin,
-			"value",
-			Gio.SettingsBindFlags.DEFAULT
-		);
-
-
-		row.add_suffix(spin);
-		row.set_activatable_widget(spin);
-
-		return row
+	_menu_refresh_timer() {
+		return this._spin("menu-refresh-timer", 0, 60, 1);
 	}
 
 	_menu_type() {
-		const row_menu_type = new Adw.ActionRow({
-			title: this._settings.settings_schema.get_key("menu-type").get_summary(),
-			subtitle: this._settings.settings_schema.get_key("menu-type").get_description(),
-		});
-
-		const dropDown = Gtk.DropDown.new_from_strings([
-			"Text",
-			"Icons",
-			"Quick Settings"
+		return this._dropdown("menu-type", [
+			_("Text"),
+			_("Icons"),
+			_("Quick Settings")
 		]);
-		dropDown.set_selected(this._settings.get_enum("menu-type"));
-		dropDown.set_valign(Gtk.Align.CENTER);
-
-		dropDown.connect('notify::selected', () => {
-			const selected = dropDown.get_selected_item().get_string().toLowerCase().replaceAll(' ', '');
-			this._settings.set_string("menu-type", selected);
-		});
-
-		row_menu_type.add_suffix(dropDown);
-		row_menu_type.activatable_widget = dropDown;
-
-		return row_menu_type;
 	}
 
 	_visible_menus() {
-		const row_visible_menu = new Adw.ActionRow({
-			title: this._settings.settings_schema.get_key("show-value").get_summary(),
-			subtitle: this._settings.settings_schema.get_key("show-value").get_description(),
-		});
-
-		const dropDown = Gtk.DropDown.new_from_strings([
-			"Both",
-			"Containers",
-			"Images",
+		return this._dropdown("show-value", [
+			_("Both"),
+			_("Containers"),
+			_("Images"),
 		]);
-		dropDown.set_selected(this._settings.get_enum("show-value"));
-		dropDown.set_valign(Gtk.Align.CENTER);
-
-		dropDown.connect('notify::selected', () => {
-			const selected = dropDown.get_selected_item().get_string().toLowerCase();
-			this._settings.set_string("show-value", selected);
-		});
-
-		row_visible_menu.add_suffix(dropDown);
-		row_visible_menu.activatable_widget = dropDown;
-
-		return row_visible_menu;
 	}
 
 	_submenu_text_size() {
-		const row_submenu_text_size = new Adw.ActionRow({
-			title: this._settings.settings_schema.get_key("submenu-text").get_summary(),
-			subtitle: this._settings.settings_schema.get_key("submenu-text").get_description(),
-		});
-
-		const spinButton_submenu_text_size = Gtk.SpinButton.new_with_range(1, 1000, 2)
-		spinButton_submenu_text_size.set_valign(Gtk.Align.CENTER);
-
-		this._settings.bind(
-			'submenu-text',
-			spinButton_submenu_text_size,
-			'value',
-			Gio.SettingsBindFlags.DEFAULT
-		);
-
-
-		row_submenu_text_size.add_suffix(spinButton_submenu_text_size);
-		row_submenu_text_size.activatable_widget = spinButton_submenu_text_size;
-
-		return row_submenu_text_size;
+		return this._spin("submenu-text", 1, 1000, 2);
 	}
 
 	_submenu_image_size() {
-		const row_submenu_img_size = new Adw.ActionRow({
-			title: this._settings.settings_schema.get_key("submenu-image").get_summary(),
-			subtitle: this._settings.settings_schema.get_key("submenu-image").get_description(),
-		});
-
-		const spinButton_submenu_img_size = Gtk.SpinButton.new_with_range(1, 1000, 2)
-		spinButton_submenu_img_size.set_valign(Gtk.Align.CENTER);
-
-		this._settings.bind(
-			'submenu-image',
-			spinButton_submenu_img_size,
-			'value',
-			Gio.SettingsBindFlags.DEFAULT
-		);
-
-
-		row_submenu_img_size.add_suffix(spinButton_submenu_img_size);
-		row_submenu_img_size.activatable_widget = spinButton_submenu_img_size;
-
-		return row_submenu_img_size;
-	}
-
-	_row_input(key) {
-		const row = new Adw.ActionRow({
-			title: this._settings.settings_schema.get_key(key).get_summary(),
-			subtitle: this._settings.settings_schema.get_key(key).get_description(),
-		});
-
-		const input = new Gtk.Entry();
-		input.set_valign(Gtk.Align.CENTER);
-
-		this._settings.bind(
-			key,
-			input,
-			'text',
-			Gio.SettingsBindFlags.DEFAULT
-		);
-
-		row.add_suffix(input);
-		row.activatable_widget = input;
-
-		return row;
+		return this._spin("submenu-image", 1, 1000, 2);
 	}
 
 	_quicksettings_columns() {
-		const row = new Adw.ActionRow({
-			title: this._settings.settings_schema.get_key("quicksettings-columns").get_summary(),
-			subtitle: this._settings.settings_schema.get_key("quicksettings-columns").get_description(),
+		return this._spin("quicksettings-columns", 1, 10, 1);
+	}
+
+	/**
+	 * Creates a row with a drop down of an enum key
+	 *
+	 * @param {string} key - the key string from schema
+	 * @param {string[]} options - labels, in the order of the enum values
+	 * @returns {Adw.ActionRow}
+	 */
+	_dropdown(key, options) {
+		const dropDown = Gtk.DropDown.new_from_strings(options);
+		dropDown.set_selected(this._settings.get_enum(key));
+
+		dropDown.connect('notify::selected', () => {
+			this._settings.set_enum(key, dropDown.get_selected());
 		});
 
-		const spin = Gtk.SpinButton.new_with_range(1, 10, 1);
-		spin.set_valign(Gtk.Align.CENTER);
+		return this._row(key, dropDown);
+	}
 
-		this._settings.bind(
-			"quicksettings-columns",
-			spin,
-			"value",
-			Gio.SettingsBindFlags.DEFAULT
-		);
+	/**
+	 * Creates a row with a spin button from
+	 * the key schema
+	 *
+	 * @param {string} key - the key string from schema
+	 * @returns {Adw.ActionRow}
+	 */
+	_spin(key, min, max, step) {
+		return this._bound_row(key, Gtk.SpinButton.new_with_range(min, max, step), 'value');
+	}
 
-
-		row.add_suffix(spin);
-		row.set_activatable_widget(spin);
-
-		return row
+	_row_input(key) {
+		return this._bound_row(key, new Gtk.Entry(), 'text');
 	}
 
 	/**
@@ -338,24 +266,6 @@ export default class DockerPreferences extends ExtensionPreferences {
 	 * @returns {Adw.ActionRow}
 	 */
 	_switch(key) {
-		const row = new Adw.ActionRow({
-			title: this._settings.settings_schema.get_key(key).get_summary(),
-			subtitle: this._settings.settings_schema.get_key(key).get_description(),
-		});
-
-		const gtk_switch = new Gtk.Switch();
-		gtk_switch.set_valign(Gtk.Align.CENTER);
-
-		this._settings.bind(
-			key,
-			gtk_switch,
-			'state',
-			Gio.SettingsBindFlags.DEFAULT
-		);
-
-		row.add_suffix(gtk_switch);
-		row.set_activatable_widget(gtk_switch);
-
-		return row
+		return this._bound_row(key, new Gtk.Switch(), 'state');
 	}
 }

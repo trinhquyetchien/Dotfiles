@@ -8,15 +8,23 @@ import DockerManager from './dockerManager.js';
 
 import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 
+// Retries used by the Docker daemon when a healthcheck doesn't set one
+const DOCKER_DEFAULT_HEALTH_RETRIES = 3;
+
+const by_name = (a, b) => {
+	if (a.name < b.name) return -1;
+	if (a.name > b.name) return 1;
+	// equal name
+	return 0;
+};
+
 export default class DockerAPI {
 	constructor() {
-		// if (DockerAPI._singleton)
-		// 	throw new Error('DockerManager has been already initialized');
-		// DockerAPI._singleton = extension;
-
 		/**
 		* Docker commands
-		* @type {Array.<{label: string, command: string}>}
+		* `keep_menu_open` commands change the state in place, the menu stays open to show it.
+		* `confirm` commands ask before running.
+		* @type {Array.<{label: string, command: string, icon: string, keep_menu_open: boolean, confirm: boolean}>}
 		*/
 		DockerAPI._docker_commands = {
 			// Service
@@ -31,85 +39,122 @@ export default class DockerAPI {
 			// Container commands
 			c_start: {
 				label: _("Start"),
-				command: "start"
+				command: "start",
+				keep_menu_open: true,
+				icon: "media-playback-start"
 			},
 			c_start_i: {
 				label: _("Start interactive"),
-				command: "start -i"
+				command: "start -i",
+				icon: "utilities-terminal"
 			},
 			c_restart: {
 				label: _("Restart"),
-				command: "restart"
+				command: "restart",
+				keep_menu_open: true,
+				icon: "object-rotate-left"
 			},
 			c_stop: {
 				label: _("Stop"),
-				command: "stop"
+				command: "stop",
+				keep_menu_open: true,
+				icon: "media-playback-stop"
 			},
 			c_pause: {
 				label: _("Pause"),
-				command: "pause"
+				command: "pause",
+				keep_menu_open: true,
+				icon: "media-playback-pause"
 			},
 			c_unpause: {
 				label: _("Unpause"),
-				command: "unpause"
+				command: "unpause",
+				keep_menu_open: true,
+				icon: "media-playback-start"
 			},
 			c_rm: {
 				label: _("Remove"),
-				command: "rm"
+				command: "rm",
+				icon: "edit-delete",
+				confirm: true
 			},
 			c_exec: {
 				label: _("Exec Bash"),
-				command: "exec -it"
+				command: "exec -it",
+				icon: "utilities-terminal"
 			},
 			c_attach: {
 				label: _("Attach Terminal"),
-				command: "attach"
+				command: "attach",
+				icon: "emblem-symbolic-link"
 			},
 			c_inspect: {
 				label: _("Inspect"),
-				command: "inspect"
+				command: "inspect",
+				icon: "user-info"
 			},
 			c_logs: {
 				label: _("View logs"),
-				command: "logs -f"
+				command: "logs -f",
+				icon: "format-justify-fill"
 			},
 
 			compose_logs: {
+				compose: true,
 				label: _("View logs"),
+				icon: "format-justify-fill"
 			},
 
 			compose_up: {
+				compose: true,
 				label: _("Up"),
-				command: "up -d"
+				command: "up -d",
+				keep_menu_open: true,
+				icon: "media-playback-start"
 			},
 			compose_restart: {
+				compose: true,
 				label: _("Restart"),
+				keep_menu_open: true,
+				icon: "object-rotate-left"
 			},
 			compose_stop: {
+				compose: true,
 				label: _("Stop"),
-				command: "stop"
+				command: "stop",
+				keep_menu_open: true,
+				icon: "media-playback-stop"
 			},
 			compose_rm: {
+				compose: true,
 				label: _("Remove"),
-				command: "down"
+				command: "down",
+				icon: "edit-delete",
+				confirm: true
 			},
 
 			// Img commands
 			i_rm: {
 				label: _("Remove"),
-				command: "rmi -f"
+				command: "rmi -f",
+				icon: "edit-delete",
+				confirm: true
 			},
 			i_run: {
 				label: _("Run"),
-				command: "run --rm -d"
+				command: "run --rm -d",
+				keep_menu_open: true,
+				icon: "media-playback-start"
 			},
 			i_run_i: {
 				label: _("Run interactive"),
-				command: "run --rm -it"
+				command: "run --rm -it",
+				icon: "utilities-terminal"
 			},
 			i_inspect: {
 				label: _("Inspect"),
-				command: "inspect"
+				command: "inspect",
+				icon: "user-info"
 			}
 		}
 
@@ -134,7 +179,7 @@ export default class DockerAPI {
 	static spawn_command_line_async(c) {
 		const exe = c.split(' ')[0];
 		if (!GLib.find_program_in_path(exe)) {
-			const msg = `"${exe}" not found. Update the Terminal setting in extension Preferences.`;
+			const msg = _('"%s" not found. Update the Terminal setting in extension Preferences.').replace('%s', exe);
 			Main.notifyError('Docker', msg);
 			return;
 		}
@@ -143,6 +188,52 @@ export default class DockerAPI {
 
 	static get docker_commands() {
 		return DockerAPI._docker_commands;
+	}
+
+	/**
+	 * Commands of a container in the given state, in menu order.
+	 * @param {string} state
+	 * @return {Array.<Object>}
+	 */
+	static container_commands(state) {
+		const c = DockerAPI._docker_commands;
+		let commands;
+		switch (state) {
+			case "running":
+				commands = [c.c_exec, c.c_attach, c.c_pause, c.c_stop, c.c_restart];
+				break;
+			case "paused":
+				commands = [c.c_unpause, c.c_stop, c.c_restart];
+				break;
+			default:
+				commands = [c.c_start, c.c_start_i];
+		}
+
+		return [...commands, c.c_logs, c.c_inspect, c.c_rm];
+	}
+
+	/**
+	 * Compose commands of a container in the given state, in menu order.
+	 * @param {string} state
+	 * @return {Array.<Object>}
+	 */
+	static compose_commands(state) {
+		const c = DockerAPI._docker_commands;
+		const commands = state === "running"
+			? [c.compose_restart, c.compose_stop]
+			: [c.compose_up, c.compose_rm];
+
+		// View logs (always available)
+		return [...commands, c.compose_logs];
+	}
+
+	/**
+	 * Commands of an image, in menu order.
+	 * @return {Array.<Object>}
+	 */
+	static image_commands() {
+		const c = DockerAPI._docker_commands;
+		return [c.i_run, c.i_run_i, c.i_inspect, c.i_rm];
 	}
 
 	/**
@@ -160,19 +251,22 @@ export default class DockerAPI {
 	}
 
 	/**
-	 * Check if docker is installed
-	 * @return {Boolean}
+	 * Resolve the health status of an inspected container.
+	 * Docker forces the status to "unhealthy" when a container stops, so for
+	 * non-running containers derive the last known status from the probe results.
+	 * @param {Object} container output of docker inspect
+	 * @return {string|null}
 	 */
-	static is_docker_installed() {
-		return !!GLib.find_program_in_path('docker');
-	}
+	static container_health(container) {
+		const health = container.State.Health;
+		if (!health) return null;
+		if (container.State.Running) return health.Status;
 
-	/**
-	 * Check if docker-compose is installed
-	 * @return {Boolean}
-	 */
-	static is_docker_compose_installed() {
-		return !!GLib.find_program_in_path('docker-compose');
+		// Never probed during its last run
+		if (!health.Log || !health.Log.length) return null;
+
+		const retries = container.Config.Healthcheck?.Retries || DOCKER_DEFAULT_HEALTH_RETRIES;
+		return health.FailingStreak >= retries ? 'unhealthy' : 'healthy';
 	}
 
 	/**
@@ -231,22 +325,15 @@ export default class DockerAPI {
 	 * compose_dir: String}>>} every object represents a container
 	 */
 	static async get_containers() {
-		let out = "";
-		await this.exec_communicate("docker ps -aq")
-			.then((output) => { out = output })
-			.catch((err) => {
-				Main.notifyError(`Docker ERROR`, err.toString());
-			});
-
-		if (!out.length) {
+		const ids = await this._exec_or_notify("docker ps -aq");
+		if (!ids.length) {
 			return [];
 		}
 
-		await this.exec_communicate(`docker inspect --format '{{json .}}' `.concat(out))
-			.then((output) => { out = output })
-			.catch((err) => {
-				Main.notifyError(`Docker ERROR`, err.toString());
-			});
+		const out = await this._exec_or_notify(`docker inspect --format '{{json .}}' `.concat(ids));
+		if (!out.length) {
+			return [];
+		}
 
 		// Found containers
 		return out
@@ -254,34 +341,23 @@ export default class DockerAPI {
 			.map(container => {
 				container = JSON.parse(container);
 
-				let ip, gateway, ip_prefix = "";
-				if (container.NetworkSettings
-					&& container.NetworkSettings.Networks
-					&& Object.keys(container.NetworkSettings.Networks).length) {
-					ip = container.NetworkSettings.Networks[Object.keys(container.NetworkSettings.Networks)[0]].IPAddress;
-					ip_prefix = container.NetworkSettings.Networks[Object.keys(container.NetworkSettings.Networks)[0]].IPPrefixLen;
-					gateway = container.NetworkSettings.Networks[Object.keys(container.NetworkSettings.Networks)[0]].Gateway;
-				}
+				// First network of the container
+				const network = Object.values(container.NetworkSettings?.Networks ?? {})[0];
 
 				return {
 					id: container.Id,
 					name: container.Name.slice(1),
 					state: container.State.Status,
-					health: container.State.Health ? container.State.Health.Status : null,
-					ip: ip,
-					ip_prefix: ip_prefix,
-					gateway: gateway,
-					ports: container.HostConfig.PortBindings,
+					health: DockerAPI.container_health(container),
+					ip: network?.IPAddress,
+					ip_prefix: network?.IPPrefixLen ?? "",
+					gateway: network?.Gateway,
+					ports: container.HostConfig.PortBindings ?? {},
 					compose_project: container.Config.Labels['com.docker.compose.project'],
 					compose_dir: container.Config.Labels['com.docker.compose.project.working_dir']
 				};
 			})
-			.sort((a, b) => {
-				if (a.name < b.name) return -1;
-				if (a.name > b.name) return 1;
-				// equal name
-				return 0;
-			});
+			.sort(by_name);
 	}
 
 	/**
@@ -289,12 +365,7 @@ export default class DockerAPI {
 	 * @return {Promise<Array.<{id: String, name: String}>>} every object represents a container
 	 */
 	static async get_images() {
-		let out = "";
-		await this.exec_communicate(`docker images --filter dangling=false --format "{{.ID}};{{.Repository}};{{.Tag}}"`)
-			.then((output) => { out = output })
-			.catch((err) => {
-				Main.notifyError(`Docker ERROR`, err.toString());
-			});
+		const out = await this._exec_or_notify(`docker images --filter dangling=false --format "{{.ID}};{{.Repository}};{{.Tag}}"`);
 
 		if (!out.length) {
 			return [];
@@ -312,13 +383,7 @@ export default class DockerAPI {
 					name: `${s[1]}:${s[2]}`
 				};
 			})
-			.sort((a, b) => {
-				if (a.name < b.name) return -1;
-				if (a.name > b.name) return 1;
-				// equal name
-				return 0;
-			});
-
+			.sort(by_name);
 	}
 
 	/**
@@ -336,63 +401,47 @@ export default class DockerAPI {
 				item = { name: "" };
 				break;
 			case this.docker_commands.c_exec:
-				c = `${Settings.get_string('terminal')} 'docker ${command.command} ${item.id} bash; read -p "Press enter to exit..."'`;
-				this.spawn_command_line_async(c);
+				this._run_in_terminal(`docker ${command.command} ${item.id} bash`);
 				return;
-			case this.docker_commands.c_attach:
 			case this.docker_commands.c_stop:
 				c = `docker ${command.command} ${Settings.get_string('stop-command-options')} ${item.id}`;
 				break;
 
+			case this.docker_commands.c_attach:
 			case this.docker_commands.c_start_i:
 			case this.docker_commands.c_inspect:
 			case this.docker_commands.i_inspect:
 			case this.docker_commands.i_run_i:
-				c = `${Settings.get_string('terminal')} 'docker ${command.command} ${item.id}; read -p "Press enter to exit..."'`;
-				this.spawn_command_line_async(c);
+				this._run_in_terminal(`docker ${command.command} ${item.id}`);
 				return;
 
-			case this.docker_commands.c_logs: {
-				const includePrev = Settings.get_boolean('logs-include-previous');
-				const tailCount = Settings.get_int('logs-tail-length');
-				const tailFlag = includePrev ? `--tail ${tailCount}` : '--tail 0';
-				c = `${Settings.get_string('terminal')} 'docker logs ${tailFlag} -f ${item.id}; read -p "Press enter to exit..."'`;
-				this.spawn_command_line_async(c);
+			case this.docker_commands.c_logs:
+				this._run_in_terminal(`docker logs ${this._logs_tail_flag()} -f ${item.id}`);
 				return;
-			}
 
 			case this.docker_commands.compose_logs: {
-				const includePrev = Settings.get_boolean('logs-include-previous');
-				const tailCount = Settings.get_int('logs-tail-length');
-				const tailFlag = includePrev ? `--tail ${tailCount}` : '--tail 0';
-				const composeBin = await this.docker_version() >= 26 ? 'docker compose' : 'docker-compose';
-				c = `${Settings.get_string('terminal')} '${composeBin} --project-directory "${item.compose_dir}" logs ${tailFlag} -f; read -p "Press enter to exit..."'`;
-				this.spawn_command_line_async(c);
+				const compose = await this._compose_bin();
+				this._run_in_terminal(`${compose} --project-directory ${GLib.shell_quote(item.compose_dir)} logs ${this._logs_tail_flag()} -f`);
 				return;
 			}
 
 			case this.docker_commands.compose_up:
 			case this.docker_commands.compose_stop:
 			case this.docker_commands.compose_rm:
-				if (await this.docker_version() >= 26) {
-					c = `docker compose --project-directory '${item.compose_dir}' ${command.command}`;
-					break;
-				}
-
-				c = `docker-compose --project-directory '${item.compose_dir}' ${command.command}`;
+				c = `${await this._compose_bin()} --project-directory ${GLib.shell_quote(item.compose_dir)} ${command.command}`;
 				break;
-			case this.docker_commands.compose_restart:
-				if (await this.docker_version() >= 26) {
-					c = `docker compose --project-directory '${item.compose_dir}' down; docker compose --project-directory '${item.compose_dir}' up -d`;
-					break;
-				}
-
-				c = `docker-compose --project-directory '${item.compose_dir}' down; docker-compose --project-directory '${item.compose_dir}' up -d`;
+			case this.docker_commands.compose_restart: {
+				const compose = `${await this._compose_bin()} --project-directory ${GLib.shell_quote(item.compose_dir)}`;
+				c = `${compose} down; ${compose} up -d`;
 				break;
+			}
 
 			default:
 				c = `docker ${command.command} ${item.id}`;
 		}
+
+		// Show notification with container name or compose project name if available
+		const name = command.compose ? item.compose_project : item.name;
 
 		let subProcess = Gio.Subprocess.new(
 			['/bin/sh', '-c', c],
@@ -407,11 +456,51 @@ export default class DockerAPI {
 					throw new Error(stderr);
 				}
 
-				Main.notify(`${command.label}`, item.name);
+				Main.notify(`${command.label}`, name);
 			} catch (e) {
-				Main.notifyError('Docker ERROR', e.toString());
+				Main.notifyError(_('Docker ERROR'), e.toString());
 			}
 		});
+	}
+
+	/**
+	 * Run a command in the terminal from the settings, which stays open when the command ends.
+	 * @param {string} c
+	 */
+	static _run_in_terminal(c) {
+		const terminal = DockerManager.settings.get_string('terminal');
+		this.spawn_command_line_async(`${terminal} ${GLib.shell_quote(`${c}; read -p "Press enter to exit..."`)}`);
+	}
+
+	/**
+	 * `--tail` option of the logs commands from the settings.
+	 * @return {string}
+	 */
+	static _logs_tail_flag() {
+		const Settings = DockerManager.settings;
+		return Settings.get_boolean('logs-include-previous') ? `--tail ${Settings.get_int('logs-tail-length')}` : '--tail 0';
+	}
+
+	/**
+	 * Compose binary of the installed docker version.
+	 * @return {Promise<string>}
+	 */
+	static async _compose_bin() {
+		return await this.docker_version() >= 26 ? 'docker compose' : 'docker-compose';
+	}
+
+	/**
+	 * Execute a command, on failure notify the error and return an empty output.
+	 * @param {string} argv
+	 * @return {Promise<string>}
+	 */
+	static async _exec_or_notify(argv) {
+		try {
+			return await this.exec_communicate(argv);
+		} catch (err) {
+			Main.notifyError(_('Docker ERROR'), err.toString());
+			return "";
+		}
 	}
 
 	/**

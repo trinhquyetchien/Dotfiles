@@ -42,6 +42,8 @@ alias neon='google-chrome https://console.neon.tech/app/org-fancy-wildflower-394
 alias cloudflare='google-chrome https://dash.cloudflare.com/f6c59e033046e634d8d128fe4ae30473/home'
 alias figma='google-chrome https://www.figma.com/'
 
+alias herdrmb='herdr plugin action invoke setup --plugin herdr-mobile-relay.events'
+
 soical() {
     insta
     youtube

@@ -138,6 +138,7 @@ if [ "$MODE" = "stow" ]; then
     targets=(
         ".zshrc" ".zsh" ".bashrc" ".tmux.conf" ".tmux"
         ".config/starship.toml" ".config/wezterm" ".config/nvim"
+        ".config/herdr"
         ".config/libinput-gestures.conf" ".config/mpv"
         ".config/autostart/md-tray-app.desktop"
         ".config/systemd/user/syncthing.service"
@@ -162,11 +163,32 @@ if [ "$MODE" = "stow" ]; then
         fi
     done
 
-    mkdir -p "$HOME/.local/bin" "$HOME/.config/autostart" "$HOME/.config/systemd/user" "$HOME/.config/mpv"
+    mkdir -p "$HOME/.local/bin" "$HOME/.config/autostart" "$HOME/.config/systemd/user" "$HOME/.config/mpv" "$HOME/.config/herdr" "$HOME/.local/share/gnome-shell/extensions"
     chmod +x "$DOTFILES_DIR"/desktop/.local/bin/* 2>/dev/null || true
 
+    # Sao lưu extension cũ nếu có xung đột và chuẩn bị liên kết
+    if [ -d "$DOTFILES_DIR/gnome-extensions/.local/share/gnome-shell/extensions" ]; then
+        for ext_path in "$DOTFILES_DIR/gnome-extensions/.local/share/gnome-shell/extensions"/*; do
+            ext_name="$(basename "$ext_path")"
+            ext_dest="$HOME/.local/share/gnome-shell/extensions/$ext_name"
+            if [ -e "$ext_dest" ] || [ -L "$ext_dest" ]; then
+                if [ -L "$ext_dest" ]; then
+                    target_link="$(readlink -f "$ext_dest" 2>/dev/null || true)"
+                    if [[ "$target_link" == "$DOTFILES_DIR"* ]]; then
+                        continue
+                    fi
+                    rm -rf "$ext_dest"
+                else
+                    mkdir -p "$BACKUP_DIR/.local/share/gnome-shell/extensions"
+                    mv "$ext_dest" "$BACKUP_DIR/.local/share/gnome-shell/extensions/"
+                    warn "Đã sao lưu extension cũ: $ext_name -> $BACKUP_DIR"
+                fi
+            fi
+        done
+    fi
+
     cd "$DOTFILES_DIR"
-    for module in zsh tmux starship wezterm nvim libinput desktop systemd; do
+    for module in zsh tmux starship wezterm nvim herdr libinput desktop systemd gnome-extensions; do
         if [ -d "$module" ]; then
             stow -v -R -t "$HOME" "$module"
             success "Stow thành công: $module"
@@ -569,6 +591,7 @@ mkdir -p "$HOME/.local/bin"
 mkdir -p "$HOME/.config/autostart"
 mkdir -p "$HOME/.config/systemd/user"
 mkdir -p "$HOME/.config/mpv"
+mkdir -p "$HOME/.config/herdr"
 mkdir -p "$HOME/.local/share/gnome-shell/extensions"
 mkdir -p "$HOME/Note/Daily"
 mkdir -p "$BACKUP_DIR"
@@ -577,6 +600,7 @@ mkdir -p "$BACKUP_DIR"
 targets=(
     ".zshrc" ".zsh" ".bashrc" ".tmux.conf" ".tmux"
     ".config/starship.toml" ".config/wezterm" ".config/nvim"
+    ".config/herdr"
     ".config/libinput-gestures.conf" ".config/mpv"
     ".config/autostart/md-tray-app.desktop"
     ".config/systemd/user/syncthing.service"
@@ -628,7 +652,7 @@ fi
 
 # 5. Thực thi GNU Stow
 cd "$DOTFILES_DIR"
-modules=(zsh tmux starship wezterm nvim libinput desktop systemd gnome-extensions)
+modules=(zsh tmux starship wezterm nvim herdr libinput desktop systemd gnome-extensions)
 
 for mod in "${modules[@]}"; do
     if [ -d "$mod" ]; then

@@ -33,10 +33,15 @@ export default class DockerCounter {
 
 		this._remove_timer();
 
+		// Show the count now instead of after the first interval.
+		this._update_count();
 		this._timerID = GLib.timeout_add_seconds(
 			GLib.PRIORITY_DEFAULT_IDLE,
-			this._settings.get_int("up-containers-timer"),
-			this._set_count.bind(this)
+			delay,
+			() => {
+				this._update_count();
+				return GLib.SOURCE_CONTINUE;
+			}
 		);
 	}
 
@@ -49,10 +54,15 @@ export default class DockerCounter {
 		this._timerID = null;
 	}
 
-	async _set_count() {
+	async _update_count() {
 		let total = await DockerAPI.get_containers_running();
 		if (!+total) {
 			total = "";
+		}
+
+		// Destroyed while waiting for docker.
+		if (!this._label) {
+			return;
 		}
 
 		this._label.set_text(total);
@@ -61,5 +71,6 @@ export default class DockerCounter {
 	destroy() {
 		this._settings.disconnectObject(this);
 		this._remove_timer();
+		this._label = null;
 	}
 }

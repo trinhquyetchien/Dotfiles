@@ -38,4 +38,23 @@ class ConfirmDialog extends ModalDialog {
 	}
 }
 
+/**
+ * Run the action of a docker command, asking first if the command has `confirm`.
+ * @param {Object} command - command from DockerAPI.docker_commands
+ * @param {Function} action
+ * @param {string} [title] - dialog title
+ */
+export function confirm_command(command, action, title = command.label) {
+	if (!command.confirm) {
+		action();
+		return;
+	}
+
+	new ConfirmDialog(
+		title,
+		_("Are you sure you want to %s?").replace('%s', command.label),
+		action,
+	).open();
+}
+
 export default ConfirmDialog;

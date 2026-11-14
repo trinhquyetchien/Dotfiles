@@ -652,6 +652,12 @@
            <label><input type="checkbox" value="0"> Sun</label>
         </div>
 
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label style="margin-bottom: 0;">Repeat Until</label>
+          <button type="button" onclick="clearRepeatUntilDate()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 11px; padding: 0 4px; text-decoration: underline;">Clear</button>
+        </div>
+        <input type="date" id="ev-until-date" placeholder="Forever" />
+
         <label>Event Color</label>
         <input type="color" id="ev-color" value="#0a84ff" />
 
@@ -1263,12 +1269,17 @@
                 if (window.dropPlaceholder.parentElement !== col) {
                   col.appendChild(window.dropPlaceholder);
                 }
-                
+
+                const sH = String(startH).padStart(2, '0');
+                const sM = String(startM).padStart(2, '0');
+                const currentStartDt = new Date(col.dataset.date + "T" + sH + ":" + sM + ":00");
+                const currentEndDt = new Date(currentStartDt.getTime() + durationMs);
+                const eH = String(currentEndDt.getHours()).padStart(2, '0');
+                const eM = String(currentEndDt.getMinutes()).padStart(2, '0');
+
                 const titleEl = window.dropPlaceholder.querySelector('.drag-ghost-title');
                 if (titleEl) {
-                  const sH = String(startH).padStart(2, '0');
-                  const sM = String(startM).padStart(2, '0');
-                  titleEl.innerHTML = `${sH}:${sM} - ${escapeHtml(ev.title || 'Task')}`;
+                  titleEl.innerHTML = `${sH}:${sM} - ${eH}:${eM} · ${escapeHtml(ev.title || 'Task')}`;
                 }
 
                 window.dropPlaceholder.style.top = snappedTop + "px";
@@ -1690,6 +1701,7 @@
 
         const checkboxes = document.querySelectorAll('#ev-repeat input[type="checkbox"]');
         checkboxes.forEach(cb => cb.checked = false);
+        document.getElementById("ev-until-date").value = "";
 
         document.getElementById("btn-delete").style.display = "none";
         document.getElementById("btn-duplicate").style.display = "none";
@@ -1730,6 +1742,7 @@
         checkboxes.forEach(cb => {
             cb.checked = repeatDays.includes(parseInt(cb.value));
         });
+        document.getElementById("ev-until-date").value = ev.untilDate || "";
 
         document.getElementById("btn-delete").style.display = "inline-block";
         document.getElementById("btn-duplicate").style.display = "inline-block";
@@ -1861,6 +1874,11 @@
               ev.start = newValues.start;
               ev.end = newValues.end;
               ev.repeatDays = newValues.repeatDays;
+              if (newValues.untilDate) {
+                ev.untilDate = newValues.untilDate;
+              } else {
+                delete ev.untilDate;
+              }
             } else {
               const oldUntilDate = ev.untilDate;
               ev.untilDate = occDate;
@@ -1876,7 +1894,7 @@
                 end: newValues.end,
                 repeatDays: newValues.repeatDays,
                 exceptionDates: futureExceptions,
-                untilDate: (oldUntilDate && oldUntilDate > occDate) ? oldUntilDate : undefined
+                untilDate: newValues.untilDate !== undefined ? newValues.untilDate : ((oldUntilDate && oldUntilDate > occDate) ? oldUntilDate : undefined)
               };
               events.push(newRecurringEv);
             }
@@ -1893,6 +1911,11 @@
               delete ev.exceptionDates;
               delete ev.untilDate;
             } else {
+              if (newValues.untilDate) {
+                ev.untilDate = newValues.untilDate;
+              } else {
+                delete ev.untilDate;
+              }
               const origAnchorDate = ev.start.substring(0, 10);
               let dayOffset = 0;
               if (newValues.dateStr && occDate) {
@@ -2060,7 +2083,7 @@
               start: newValues.start,
               end: newValues.end,
               repeatDays: [...newValues.repeatDays],
-              untilDate: ev.untilDate
+              untilDate: newValues.untilDate !== undefined ? newValues.untilDate : ev.untilDate
             };
             events.push(newRecurringEv);
           } else if (mode === 3) {
@@ -2078,7 +2101,7 @@
               start: formatDateYMD(anchorStart) + "T" + String(anchorStart.getHours()).padStart(2, '0') + ":" + String(anchorStart.getMinutes()).padStart(2, '0') + ":00",
               end: formatDateYMD(anchorEnd) + "T" + String(anchorEnd.getHours()).padStart(2, '0') + ":" + String(anchorEnd.getMinutes()).padStart(2, '0') + ":00",
               repeatDays: [...newValues.repeatDays],
-              untilDate: ev.untilDate
+              untilDate: newValues.untilDate !== undefined ? newValues.untilDate : ev.untilDate
             };
             events.push(newRecurringEv);
           }
@@ -2090,6 +2113,11 @@
 
       function closeModal() {
         document.getElementById("modal").style.display = "none";
+      }
+
+      function clearRepeatUntilDate() {
+        const untilInput = document.getElementById("ev-until-date");
+        if (untilInput) untilInput.value = "";
       }
 
       function duplicateEvent(ev, dateStr) {
@@ -2151,6 +2179,7 @@
 
         const checkboxes = document.querySelectorAll('#ev-repeat input[type="checkbox"]:checked');
         const repeatDays = Array.from(checkboxes).map(cb => parseInt(cb.value));
+        const untilDate = repeatDays.length > 0 ? (document.getElementById("ev-until-date").value || undefined) : undefined;
 
         let startDate = new Date(dateStr + "T" + startTime + ":00");
         let endDate = new Date(endDateStr + "T" + endTime + ":00");
@@ -2193,7 +2222,8 @@
               endTime: endTime,
               start: newStartStr,
               end: newEndStr,
-              repeatDays: repeatDays
+              repeatDays: repeatDays,
+              untilDate: untilDate
             }
           });
           return;
@@ -2206,7 +2236,8 @@
           color: color,
           start: newStartStr,
           end: newEndStr,
-          repeatDays: repeatDays
+          repeatDays: repeatDays,
+          untilDate: untilDate
         };
 
         events.push(duplicateEv);
@@ -2226,6 +2257,7 @@
 
         const checkboxes = document.querySelectorAll('#ev-repeat input[type="checkbox"]:checked');
         const repeatDays = Array.from(checkboxes).map(cb => parseInt(cb.value));
+        const untilDate = repeatDays.length > 0 ? (document.getElementById("ev-until-date").value || undefined) : undefined;
 
         let startDate = new Date(dateStr + "T" + startTime + ":00");
         let endDate = new Date(endDateStr + "T" + endTime + ":00");
@@ -2251,7 +2283,8 @@
             color: color,
             start: newStartStr,
             end: newEndStr,
-            repeatDays: repeatDays
+            repeatDays: repeatDays,
+            untilDate: untilDate
           };
           events.push(newEv);
           closeModal();
@@ -2272,6 +2305,8 @@
           const origEndTime = originalEditingEvent.end.substring(11, 16);
           const origRepeat = [...(originalEditingEvent.repeatDays || [])].sort().join(',');
           const newRepeat = [...repeatDays].sort().join(',');
+          const origUntilDate = originalEditingEvent.untilDate || "";
+          const newUntilDate = untilDate || "";
           const origOccurrenceEndDate = originalEditingOccurrenceEndDate || originalEditingOccurrenceDate;
 
           const hasChanged = 
@@ -2282,7 +2317,8 @@
             endDateStr !== origOccurrenceEndDate ||
             startTime !== origStartTime ||
             endTime !== origEndTime ||
-            origRepeat !== newRepeat;
+            origRepeat !== newRepeat ||
+            origUntilDate !== newUntilDate;
 
           if (!hasChanged) {
             closeModal();
@@ -2305,7 +2341,8 @@
               endTime: endTime,
               start: newStartStr,
               end: newEndStr,
-              repeatDays: repeatDays
+              repeatDays: repeatDays,
+              untilDate: untilDate
             }
           });
           return;
@@ -2317,6 +2354,11 @@
         ev.start = newStartStr;
         ev.end = newEndStr;
         ev.repeatDays = repeatDays;
+        if (untilDate) {
+          ev.untilDate = untilDate;
+        } else {
+          delete ev.untilDate;
+        }
 
         closeModal();
         saveEvents();

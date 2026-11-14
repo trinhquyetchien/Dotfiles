@@ -1,3 +1,19 @@
+const PIPELINE_SETTINGS = ['PIPELINE', 'PIPELINE_AUTO_MODE', 'PIPELINE_LIGHT', 'PIPELINE_DARK'];
+const POPUP_BLUR_SETTINGS = [
+    'BLUR_MENUS',
+    'BLUR_CANDIDATES',
+    'BLUR_QUICK_SETTINGS',
+    'BLUR_SUBMENUS',
+    'BLUR_SCREENSHOT',
+    'BLUR_CALENDAR',
+    'BLUR_NOTIFICATIONS',
+    'BLUR_SWITCHERS',
+    'BLUR_OSDS',
+    'BLUR_RESIZE_POPUPS',
+    'BLUR_DIALOGS',
+    'BLUR_KEYBOARD',
+];
+
 function connect(settings, property, callback) {
     settings[`${property}_changed`](callback);
 }
@@ -11,7 +27,8 @@ function when_enabled(component, callback) {
 
 function connect_toggle(extension, settings, component, user_session = true) {
     connect(settings, 'BLUR', () => {
-        const allowed = !user_session || extension._user_session_mode_enabled;
+        const allowed = !extension._paused
+            && (!user_session || extension._user_session_mode_enabled);
         if (settings.BLUR && allowed)
             component.enable();
         else
@@ -33,21 +50,33 @@ export function connect_component_settings(extension) {
     const popup = extension._popup;
 
     connect_toggle(extension, settings.overview, overview);
-    connect(settings.overview, 'PIPELINE', when_enabled(
-        overview,
-        () => overview.update_backgrounds()
-    ));
+    PIPELINE_SETTINGS.forEach(property =>
+        connect(settings.overview, property, when_enabled(
+            overview,
+            () => overview.update_backgrounds()
+        ))
+    );
     connect(settings.overview, 'STYLE_COMPONENTS', when_enabled(
         overview,
         () => overview.update_components_classname()
     ));
+    connect(settings.overview, 'WORKSPACE_CORNER_RADIUS', when_enabled(
+        overview,
+        () => overview.update_workspace_backgrounds()
+    ));
 
     connect_toggle(extension, settings.appfolder, appfolder);
-    connect(settings.appfolder, 'PIPELINE', when_enabled(
-        appfolder,
-        () => appfolder.update_pipeline()
-    ));
+    PIPELINE_SETTINGS.forEach(property =>
+        connect(settings.appfolder, property, when_enabled(
+            appfolder,
+            () => appfolder.update_pipeline()
+        ))
+    );
     connect(settings.appfolder, 'STYLE_DIALOGS', when_enabled(
+        appfolder,
+        () => appfolder.blur_appfolders()
+    ));
+    connect(settings.appfolder, 'BLUR_BEHIND_FOLDERS', when_enabled(
         appfolder,
         () => appfolder.blur_appfolders()
     ));
@@ -58,17 +87,19 @@ export function connect_component_settings(extension) {
         'OVERRIDE_BACKGROUND_DYNAMICALLY_MODE'].forEach(property =>
         connect(settings.panel, property, when_enabled(panel, () => panel.reset()))
     );
-    connect(settings.panel, 'PIPELINE', when_enabled(
-        panel,
-        () => panel.update_pipeline()
-    ));
+    PIPELINE_SETTINGS.forEach(property =>
+        connect(settings.panel, property, when_enabled(
+            panel,
+            () => panel.update_pipeline()
+        ))
+    );
     ['CORNER_RADIUS', 'ROUNDED_CORNERS'].forEach(property =>
         connect(settings.panel, property, when_enabled(
             panel,
             () => panel.update_corner_radius()
         ))
     );
-    ['UNBLUR_IN_OVERVIEW', 'STYLE_PANEL'].forEach(property =>
+    ['UNBLUR_IN_OVERVIEW', 'MATCH_THEME_IN_OVERVIEW', 'STYLE_PANEL'].forEach(property =>
         connect(settings.panel, property, when_enabled(
             panel,
             () => panel.connect_to_windows_and_overview()
@@ -90,10 +121,12 @@ export function connect_component_settings(extension) {
         dash,
         () => dash.change_blur_type()
     ));
-    connect(settings.dash_to_dock, 'PIPELINE', when_enabled(
-        dash,
-        () => dash.update_pipeline()
-    ));
+    PIPELINE_SETTINGS.forEach(property =>
+        connect(settings.dash_to_dock, property, when_enabled(
+            dash,
+            () => dash.update_pipeline()
+        ))
+    );
     ['OVERRIDE_BACKGROUND', 'STYLE_DASH_TO_DOCK'].forEach(property =>
         connect(settings.dash_to_dock, property, when_enabled(
             dash,
@@ -110,10 +143,12 @@ export function connect_component_settings(extension) {
         applications,
         () => applications.change_blur_type()
     ));
-    connect(settings.applications, 'PIPELINE', when_enabled(
-        applications,
-        () => applications.change_pipeline()
-    ));
+    PIPELINE_SETTINGS.forEach(property =>
+        connect(settings.applications, property, when_enabled(
+            applications,
+            () => applications.change_pipeline()
+        ))
+    );
     ['CORNER_WHEN_MAXIMIZED', 'CORNER_RADIUS', 'ROUNDED_CORNERS'].forEach(property =>
         connect(settings.applications, property, when_enabled(
             applications,
@@ -136,6 +171,14 @@ export function connect_component_settings(extension) {
         applications,
         () => applications.update_fullscreen_status()
     ));
+    connect(settings.applications, 'BLUR_MENUS', when_enabled(
+        applications,
+        () => applications.update_menus()
+    ));
+    connect(settings.applications, 'MENU_CORNER_RADIUS', when_enabled(
+        applications,
+        () => applications.menus.update_corner_radius()
+    ));
     connect(settings.applications, 'ENABLE_ALL', when_enabled(
         applications,
         () => applications.update_all_windows()
@@ -155,23 +198,31 @@ export function connect_component_settings(extension) {
         }
     ));
 
+    connect(settings, 'POWER_SAVER', () => extension._update_power_saver());
+
     connect_toggle(extension, settings.lockscreen, lockscreen, false);
-    connect(settings.lockscreen, 'PIPELINE', when_enabled(
-        lockscreen,
-        () => lockscreen.update_lockscreen()
-    ));
+    PIPELINE_SETTINGS.forEach(property =>
+        connect(settings.lockscreen, property, when_enabled(
+            lockscreen,
+            () => lockscreen.update_lockscreen()
+        ))
+    );
 
     connect_toggle(extension, settings.window_list, window_list);
-    connect(settings.window_list, 'PIPELINE', when_enabled(
-        window_list,
-        () => window_list.update_pipeline()
-    ));
+    PIPELINE_SETTINGS.forEach(property =>
+        connect(settings.window_list, property, when_enabled(
+            window_list,
+            () => window_list.update_pipeline()
+        ))
+    );
 
     connect_toggle(extension, settings.coverflow_alt_tab, coverflow);
-    connect(settings.coverflow_alt_tab, 'PIPELINE', when_enabled(
-        coverflow,
-        () => coverflow.update_pipeline()
-    ));
+    PIPELINE_SETTINGS.forEach(property =>
+        connect(settings.coverflow_alt_tab, property, when_enabled(
+            coverflow,
+            () => coverflow.update_pipeline()
+        ))
+    );
 
     connect(settings.hidetopbar, 'COMPATIBILITY', when_enabled(
         panel,
@@ -183,19 +234,29 @@ export function connect_component_settings(extension) {
     ));
 
     connect_toggle(extension, settings.screenshot, screenshot);
-    connect(settings.screenshot, 'PIPELINE', when_enabled(
-        screenshot,
-        () => screenshot.update_pipeline()
-    ));
+    PIPELINE_SETTINGS.forEach(property =>
+        connect(settings.screenshot, property, when_enabled(
+            screenshot,
+            () => screenshot.update_pipeline()
+        ))
+    );
 
     connect_toggle(extension, settings.popup, popup, false);
-    connect(settings.popup, 'STATIC_BLUR', when_enabled(
+    ['STATIC_BLUR', ...POPUP_BLUR_SETTINGS].forEach(property =>
+        connect(settings.popup, property, when_enabled(
+            popup,
+            () => popup.reset()
+        ))
+    );
+    PIPELINE_SETTINGS.forEach(property =>
+        connect(settings.popup, property, when_enabled(
+            popup,
+            () => popup.update_pipeline()
+        ))
+    );
+    connect(settings.popup, 'BLUR_BEHIND_DIALOGS', when_enabled(
         popup,
-        () => popup.reset()
-    ));
-    connect(settings.popup, 'PIPELINE', when_enabled(
-        popup,
-        () => popup.update_pipeline()
+        () => popup.update_dialog_backdrops()
     ));
     ['OVERRIDE_BACKGROUND', 'PRESERVE_SHELL_THEME', 'STYLE_POPUP'].forEach(property =>
         connect(settings.popup, property, when_enabled(

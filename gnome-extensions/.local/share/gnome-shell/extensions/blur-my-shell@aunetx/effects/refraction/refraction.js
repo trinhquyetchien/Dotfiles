@@ -157,6 +157,19 @@ const RefractionEffectClass = utils.IS_IN_PREFERENCES ? null : class RefractionE
             }
         }
 
+        get reach() {
+            return this._reach;
+        }
+
+        set reach(value) {
+            const reach = utils.clamp(value, 0, 500, DEFAULT_PARAMS.reach);
+            if (this._reach !== reach) {
+                this._reach = reach;
+
+                this.update_scaled_uniforms();
+            }
+        }
+
         get rgb_fringing() {
             return this._rgb_fringing;
         }
@@ -218,7 +231,21 @@ const RefractionEffectClass = utils.IS_IN_PREFERENCES ? null : class RefractionE
                 uniforms.set_uniform(this, 'fresnel_width', parseFloat(this._fresnel_width - 1e-6));
             }
         }
-            get specular_strength() {
+
+        get fresnel_two_sided() {
+            return this._fresnel_two_sided;
+        }
+
+        set fresnel_two_sided(value) {
+            const fresnelTwoSided = Boolean(value);
+            if (this._fresnel_two_sided !== fresnelTwoSided) {
+                this._fresnel_two_sided = fresnelTwoSided;
+
+                uniforms.set_uniform(this, 'fresnel_two_sided', this._fresnel_two_sided ? 1 : 0);
+            }
+        }
+
+        get specular_strength() {
             return this._specular_strength;
         }
 
@@ -234,6 +261,32 @@ const RefractionEffectClass = utils.IS_IN_PREFERENCES ? null : class RefractionE
                     'specular_strength',
                     parseFloat(this._specular_strength - 1e-6)
                 );
+            }
+        }
+
+        get edge_shadow() {
+            return this._edge_shadow;
+        }
+
+        set edge_shadow(value) {
+            const edgeShadow = utils.clamp(value, 0, 1, DEFAULT_PARAMS.edge_shadow);
+            if (this._edge_shadow !== edgeShadow) {
+                this._edge_shadow = edgeShadow;
+
+                uniforms.set_uniform(this, 'edge_shadow', parseFloat(this._edge_shadow - 1e-6));
+            }
+        }
+
+        get edge_glow() {
+            return this._edge_glow;
+        }
+
+        set edge_glow(value) {
+            const edgeGlow = utils.clamp(value, 0, 1, DEFAULT_PARAMS.edge_glow);
+            if (this._edge_glow !== edgeGlow) {
+                this._edge_glow = edgeGlow;
+
+                uniforms.set_uniform(this, 'edge_glow', parseFloat(this._edge_glow - 1e-6));
             }
         }
 
@@ -443,9 +496,12 @@ const RefractionEffectClass = utils.IS_IN_PREFERENCES ? null : class RefractionE
             const max_edge = Math.max(1, Math.min(rect_width, rect_height) / 2);
             const edge_size = Math.min(this.edge_size * scale_factor, max_edge);
             const corner_radius = Math.min(this.corner_radius * scale_factor, max_edge);
+            const reach = Math.min(this.reach * scale_factor, max_edge);
 
             uniforms.set_uniform(this, 'edge_size', parseFloat(edge_size - 1e-6));
+            uniforms.set_uniform(this, 'reach', parseFloat(reach));
             uniforms.set_uniform(this, 'corner_radius', parseFloat(corner_radius - 1e-6));
+            uniforms.set_uniform(this, 'scale_factor', parseFloat(scale_factor));
         }
 
         vfunc_set_actor(actor) {

@@ -1,12 +1,11 @@
 import Clutter from 'gi://Clutter';
-import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 
 import { ModalDialog } from 'resource:///org/gnome/shell/ui/modalDialog.js';
 import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 
-import DockerAPI from '../../lib/docker.js';
+import { copy_to_clipboard, open_url, port_addresses } from '../../lib/utils.js';
 
 class InformationDialog extends ModalDialog {
 	static {
@@ -86,9 +85,7 @@ class InformationDialog extends ModalDialog {
 		this._add_row(
 			`IP: ${container.ip}/${container.ip_prefix}`,
 			"edit-copy-symbolic",
-			() => {
-				St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, container.ip);
-			}
+			() => copy_to_clipboard(container.ip)
 		);
 	}
 
@@ -98,11 +95,9 @@ class InformationDialog extends ModalDialog {
 		}
 
 		this._add_row(
-			`Gateway: ${container.gateway}`,
+			`${_("Gateway")}: ${container.gateway}`,
 			"edit-copy-symbolic",
-			() => {
-				St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, container.gateway);
-			}
+			() => copy_to_clipboard(container.gateway)
 		);
 	}
 
@@ -111,28 +106,8 @@ class InformationDialog extends ModalDialog {
 			return;
 		}
 
-		for (let key of Object.keys(container.ports)) {
-			const port = key.split("/")[0];
-			const by_ip = `${container.ip}:${port}`;
-			this._add_row(
-				`${port} -> ${by_ip}`,
-				"web-browser-symbolic",
-				() => {
-					GLib.spawn_command_line_async(`xdg-open http://${by_ip}`);
-				}
-			);
-
-			if (container.ports[key][0].HostPort) {
-				const host_port = container.ports[key][0].HostPort;
-				const by_localhost = `localhost:${host_port}`;
-				this._add_row(
-					`${port} -> ${by_localhost}`,
-					"web-browser-symbolic",
-					() => {
-						GLib.spawn_command_line_async(`xdg-open http://${by_localhost}`);
-					}
-				);
-			}
+		for (const { label, address } of port_addresses(container)) {
+			this._add_row(label, "web-browser-symbolic", () => open_url(address));
 		}
 	}
 }

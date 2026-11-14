@@ -62,6 +62,7 @@ Mọi cấu hình đều được tổ chức dạng thư mục tương thích v
 | 📁 `starship` | Tinh chỉnh giao diện thanh prompt Starship phong cách Powerline đẹp mắt, hiển thị ngữ cảnh lập trình. |
 | 📁 `desktop` | Chứa các công cụ desktop độc quyền: <br>• `md_tray_app.py`: Giao diện khay hệ thống (System Tray) quản lý ghi chú Markdown / Daily Tasks bằng Gtk3 & WebKit. <br>• `movie`: Script fzf + MPV ModernX xem video/phim cực nhanh trong terminal. <br>• `autostart`: Tự động khởi động `md_tray_app.py`. |
 | 📁 `systemd` | Systemd User service (`syncthing.service`) tự động chạy đồng bộ kho ghi chú cá nhân ngầm. |
+| 📁 `herdr` | Cấu hình multiplexer / worktree manager Herdr: prefix `Ctrl-s`, theme Tokyo Night, nvim integration. |
 | 📁 `libinput` | Tùy chỉnh cử chỉ touchpad 4 ngón đa điểm qua `libinput-gestures`. |
 | 📁 `gnome-extensions` | Bộ sưu tập toàn bộ GNOME Shell Extensions đã được tinh chỉnh (Reminder Alarm Clock đa nhiệm, Blur my Shell, Vitals, Touchpad Gestures, Top Bar Organizer, Clipboard Indicator...). |
 | 📄 `install.sh` | Script bootstrap tự động 100% sao lưu và khôi phục toàn bộ môi trường từ máy trắng. |

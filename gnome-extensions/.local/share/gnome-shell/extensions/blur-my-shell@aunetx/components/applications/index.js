@@ -4,9 +4,11 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import { ApplicationsService } from '../../dbus/services.js';
 import { Pipeline } from '../../pipelines/pipeline.js';
+import { connect_system_style_changes, get_pipeline_id } from '../../conveniences/style.js';
 import { is_desktop_window } from '../../conveniences/window.js';
 import { DynamicPipeline } from '../../render/dynamic_surface.js';
 import { RoundedPipeline } from '../../render/rounded_pipeline.js';
+import { ApplicationMenus } from './menus.js';
 import { WindowRules } from './window_rules.js';
 import { BLUR_ACTOR_NAME, WindowOpacity } from './window_opacity.js';
 import { compute_scale, place_dynamic_blur, place_static_blur } from './window_geometry.js';
@@ -22,6 +24,7 @@ export const ApplicationsBlur = class ApplicationsBlur {
         this.blur_signal_ids = new Map();
 
         this.rules = new WindowRules(settings);
+        this.menus = new ApplicationMenus(settings, effects_manager, this.rules);
         this.window_opacity = new WindowOpacity();
         this.enabled = false;
 
@@ -36,6 +39,10 @@ export const ApplicationsBlur = class ApplicationsBlur {
         this.enabled = true;
 
         this.mutter_gsettings = new Gio.Settings({ schema: 'org.gnome.mutter' });
+        connect_system_style_changes(this.connections, () => {
+            if (this.settings.applications.PIPELINE_AUTO_MODE)
+                this.change_pipeline();
+        });
 
         this.update_all_windows();
 
@@ -45,6 +52,16 @@ export const ApplicationsBlur = class ApplicationsBlur {
             (_meta_display, meta_window) => {
                 this._log("window created");
                 this.track_new(meta_window);
+            }
+        );
+
+        // a window changes monitor after its position does
+        this.connections.connect(
+            global.display,
+            'window-entered-monitor',
+            (_display, _monitor, meta_window) => {
+                if (meta_window.blur_actor && this.settings.applications.STATIC_BLUR)
+                    this.update_size(meta_window);
             }
         );
 
@@ -123,6 +140,14 @@ export const ApplicationsBlur = class ApplicationsBlur {
 
             windows.forEach(meta_window => this.track_new(meta_window));
         }
+
+        this.update_menus();
+    }
+
+    update_menus() {
+        this.menus.disable();
+        if (this.settings.applications.BLUR_MENUS)
+            this.menus.enable();
     }
 
     /// Adds the needed signals to every new tracked window, and adds blur if
@@ -138,7 +163,7 @@ export const ApplicationsBlur = class ApplicationsBlur {
         this.meta_windows.add(meta_window);
 
         this.connections.connect(
-            meta_window, 'notify::wm-class',
+            meta_window, ['notify::wm-class', 'notify::title'],
             _ => this.check_blur(meta_window)
         );
         this.connections.connect(
@@ -178,6 +203,17 @@ export const ApplicationsBlur = class ApplicationsBlur {
                 meta_window,
                 meta_window,
                 'position-changed',
+                () => this.update_size(meta_window)
+            );
+            this.connect_blur_signal(
+                meta_window,
+                window_actor,
+                [
+                    'notify::translation-x',
+                    'notify::translation-y',
+                    'notify::scale-x',
+                    'notify::scale-y',
+                ],
                 () => this.update_size(meta_window)
             );
         } else {
@@ -257,20 +293,17 @@ export const ApplicationsBlur = class ApplicationsBlur {
         const blur_actor = meta_window.blur_actor;
 
         if (this.settings.applications.STATIC_BLUR) {
-            const bg_manager = meta_window.bg_manager;
-            const bg_actor_monitor_index = bg_manager.backgroundActor.monitor;
             const window_monitor_index = meta_window.get_monitor();
             const monitor = Main.layoutManager.monitors[window_monitor_index];
             if (!monitor)
                 return;
 
-            if (bg_actor_monitor_index !== window_monitor_index) {
+            // the static blur is made from the background of one monitor
+            if (meta_window.bg_manager.backgroundActor.monitor !== window_monitor_index) {
                 this._log(`application switching to monitor: ${window_monitor_index}`);
-
-                bg_manager._monitorIndex = window_monitor_index;
-                bg_manager._updateBackgroundActor();
-                blur_actor.width = monitor.width;
-                blur_actor.height = monitor.height;
+                this.remove_blur(meta_window);
+                this.create_blur_effect(meta_window);
+                return;
             }
 
             place_static_blur(
@@ -307,7 +340,7 @@ export const ApplicationsBlur = class ApplicationsBlur {
             const pipeline = new Pipeline(
                 this.effects_manager,
                 global.blur_my_shell._pipelines_manager,
-                this.settings.applications.PIPELINE
+                get_pipeline_id(this.settings.applications)
             );
             const bg_managers = [];
             blur_actor = pipeline.create_background_with_effects(
@@ -325,7 +358,7 @@ export const ApplicationsBlur = class ApplicationsBlur {
             const pipeline = new DynamicPipeline(
                 this.effects_manager,
                 global.blur_my_shell._pipelines_manager,
-                this.settings.applications.PIPELINE,
+                get_pipeline_id(this.settings.applications),
                 {
                     corner_radius: this.settings.applications.CORNER_RADIUS,
                     get_corners: () => this.settings.applications.ROUNDED_CORNERS,
@@ -440,10 +473,11 @@ export const ApplicationsBlur = class ApplicationsBlur {
     change_pipeline() {
         this.meta_windows.forEach(meta_window => {
             meta_window.bg_manager?._bms_pipeline.change_pipeline_to(
-                this.settings.applications.PIPELINE
+                get_pipeline_id(this.settings.applications)
             );
             this.update_corner_radius(meta_window);
         });
+        this.menus.update_pipeline();
     }
 
     /// Removes the blur actor to make a blurred window become normal again.
@@ -487,9 +521,6 @@ export const ApplicationsBlur = class ApplicationsBlur {
     }
 
     disable() {
-        if (!this.enabled)
-            return;
-
         this._log("removing blur from applications...");
         this.enabled = false;
 
@@ -499,6 +530,7 @@ export const ApplicationsBlur = class ApplicationsBlur {
             this.untrack_meta_window(meta_window)
         );
 
+        this.menus.disable();
         this.connections.disconnect_all();
         this.window_opacity.clear();
     }

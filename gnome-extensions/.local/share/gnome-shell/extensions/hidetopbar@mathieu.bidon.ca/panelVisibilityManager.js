@@ -24,6 +24,7 @@ import Clutter from 'gi://Clutter';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as Layout from 'resource:///org/gnome/shell/ui/layout.js';
+import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 const [major] = Config.PACKAGE_VERSION.split('.');
 const shellVersion = Number.parseInt(major);
@@ -42,8 +43,7 @@ const _searchEntryBin = Main.overview._overview._controls._searchEntryBin;
 
 export class PanelVisibilityManager {
 
-    constructor(settings, monitorIndex) {
-        this._monitorIndex = monitorIndex;
+    constructor(settings) {
         this._base_y = PanelBox.y;
         this._settings = settings;
         this._preventHide = false;
@@ -51,7 +51,6 @@ export class PanelVisibilityManager {
         this._intellihideBlock = false;
         this._staticBox = new Clutter.ActorBox();
         this._animationActive = false;
-        this._shortcutTimeout = null;
         this._unredirectDisabled = false;
 
         this._desktopIconsUsableArea = (
@@ -76,31 +75,40 @@ export class PanelVisibilityManager {
             }
         ).bind(this);
 
+        // store all signal and timeout handlers in one object to make sure that they are
+        // removed on destroy
+        this._signalsHandler = new Convenience.GlobalSignalsHandler();
+
+        // Panel._toggleMenu() returns early while the panel is unmapped, so
+        // Super+S and Super+V do nothing with the bar hidden. Reveal it first.
+        this._oldToggleQuickSettings = this._wrapMenuToggle('toggleQuickSettings');
+        this._oldToggleCalendar = this._wrapMenuToggle('toggleCalendar');
+
         this._cursorTracker = (
             (typeof global.backend?.get_cursor_tracker === "function")
             ? global.backend.get_cursor_tracker()
             : Meta.CursorTracker.get_for_display(global.display)  // GNOME Shell 45-47
         );
-        this._pointerListener = null;
 
         // Load settings
         this._bindSettingsChanges();
         this._updateSettingsMouseSensitive();
         this._updateSettingsShowInOverview();
         this._intellihide = new Intellihide.Intellihide(
-            this._settings, this._monitorIndex,
+            this._settings,
         );
 
         this._updateHotCorner(false);
         this._updateStaticBox();
+
         // Wait until the panel has an allocation: after login this can take
         // a second or two, and on unlock a relayout can still be queued.
         // notify::allocation is not enough, it only fires if the box changes.
-        this._bindTimeoutId = GLib.timeout_add(
-            GLib.PRIORITY_DEFAULT, 100, () => {
+        this._signalsHandler.addTimeout(
+            'bindUiChangesTimeout', 100,
+            () => {
                 if (!PanelBox.has_allocation())
                     return GLib.SOURCE_CONTINUE;
-                this._bindTimeoutId = 0;
                 this._bindUIChanges();
                 return GLib.SOURCE_REMOVE;
             }
@@ -178,6 +186,7 @@ export class PanelVisibilityManager {
         PanelBox.show();
         this._setUnredirectDisabled(trigger != "destroy");
         if(trigger == "destroy"
+           || trigger == "menu-shortcut"
            || (
                trigger == "showing-overview"
                && global.get_pointer()[1] < PanelBox.height
@@ -203,18 +212,56 @@ export class PanelVisibilityManager {
                         // start hiding the panel immediately.
                         this._handleMenus();
                     }
-                    else if(!this._pointerListener)
+                    else if(!this._signalsHandler.has("pointerListener"))
                     {
                         // The cursor is still on the panel. Start watching the
                         // pointer so we know when it leaves the panel.
-                        this._pointerListener = this._cursorTracker.connect(
-                            'position-invalidated',
-                            () => this._handlePointer(...global.get_pointer()),
+                        this._signalsHandler.addWithLabel(
+                            "pointerListener",
+                            [
+                                this._cursorTracker,
+                                'position-invalidated',
+                                () => this._handlePointer(...global.get_pointer()),
+                            ],
                         );
                     }
                 }
             });
         }
+    }
+
+    _wrapMenuToggle(name) {
+        const original = Main.panel[name];
+        Main.panel[name] = (...args) => {
+            if (this._signalsHandler.has("menuToggle")) return;
+            if (PanelBox.visible && PanelBox.y === this._base_y) {
+                original.apply(Main.panel, args);
+                return;
+            }
+            this.show(0, "menu-shortcut");
+            this._updateStaticBox();
+            // Open the menu only after the frame that picks the revealed
+            // panel under the pointer. If that pick came after the menu's
+            // grab, the panel button under the pointer would get an enter
+            // event and PopupMenuManager would switch to its menu.
+            this._signalsHandler.addWithLabel(
+                "menuToggle",
+                [
+                    global.stage,
+                    'after-update',
+                    (stage, view) => {
+                        if (!PanelBox.peek_stage_views().includes(view)) return;
+                        this._signalsHandler.disconnectWithLabel("menuToggle");
+                        try {
+                            original.apply(Main.panel, args);
+                        } finally {
+                            this._handleMenus();
+                        }
+                    },
+                ],
+            );
+        };
+        return original;
     }
 
     _isHovering(x, y) {
@@ -225,10 +272,7 @@ export class PanelVisibilityManager {
     }
 
     _stopWatchingPointer() {
-        if(this._pointerListener) {
-            this._cursorTracker.disconnect(this._pointerListener);
-            this._pointerListener = null;
-        }
+        this._signalsHandler.disconnectWithLabel("pointerListener");
     }
 
     _handlePointer(x, y) {
@@ -239,36 +283,69 @@ export class PanelVisibilityManager {
 
     _handleMenus() {
         if(!Main.overview.visible) {
-            let blocker = Main.panel.menuManager.activeMenu;
+            let blocker = Main.panel.menuManager.activeMenu
+                ?? this._panelGrabMenu();
             if(blocker == null) {
+                this._releaseBlocker();
                 this.hide(
                     this._settings.get_double('animation-time-autohide'),
                     "mouse-left"
                 );
-            } else {
+            } else if(blocker !== this._blockerMenu) {
+                this._releaseBlocker();
                 this._blockerMenu = blocker;
-                this._menuEvent = this._blockerMenu.connect(
-                    'open-state-changed',
-                    (menu, open) => {
-                        if(!open && this._blockerMenu !== null) {
-                            this._blockerMenu.disconnect(this._menuEvent);
-                            this._menuEvent=null;
-                            this._blockerMenu=null;
-                            this._handleMenus();
-                        }
-                    }
+                this._signalsHandler.addWithLabel(
+                    'blockerMenu',
+                    [
+                        blocker,
+                        'open-state-changed',
+                        (menu, open) => {
+                            if(!open && this._blockerMenu !== null) {
+                                this._releaseBlocker();
+                                this._handleMenus();
+                            }
+                        },
+                    ],
                 );
             }
         }
     }
 
+    _releaseBlocker() {
+        if(this._blockerMenu) {
+            this._signalsHandler.disconnectWithLabel('blockerMenu');
+            this._blockerMenu = null;
+        }
+    }
+
+    // Menus of other extensions (ArcMenu, App Icons Taskbar) have their own
+    // PopupMenuManager. Find the open menu holding the input grab that was
+    // opened from the panel, directly or from such a menu: hiding the panel
+    // unmaps its source actor, and the menu closes.
+    _panelGrabMenu() {
+        let actor = global.stage.get_grab_actor();
+        let grabMenu = null;
+        const seen = new Set();
+        while(actor) {
+            if(PanelBox.contains(actor))
+                return grabMenu?.isOpen ? grabMenu : null;
+            const menu = actor._delegate;
+            if(menu instanceof PopupMenu.PopupMenuBase && menu.sourceActor
+               && !seen.has(menu)) {
+                seen.add(menu);
+                grabMenu ??= menu;
+                actor = menu.sourceActor;
+            } else {
+                actor = actor.get_parent();
+            }
+        }
+        return null;
+    }
+
     _handleShortcut() {
         let delay_time = this._settings.get_double('shortcut-delay');
-        if(this._shortcutTimeout) {
-            if(this._shortcutTimeout !== true) {
-                GLib.source_remove(this._shortcutTimeout);
-            }
-            this._shortcutTimeout = null;
+        if(this._signalsHandler.has('shortcutTimeout')) {
+            this._signalsHandler.disconnectWithLabel('shortcutTimeout');
             if(delay_time < 0.05
                || this._settings.get_boolean('shortcut-toggles')) {
                 this._intellihideBlock = false;
@@ -293,13 +370,12 @@ export class PanelVisibilityManager {
                   Math.max(0.1, delay_time/5.0));
                 this.show(show_time, "shortcut");
 
-                this._shortcutTimeout = GLib.timeout_add(
-                    GLib.PRIORITY_DEFAULT, delay_time*1200,
+                this._signalsHandler.addTimeout(
+                    'shortcutTimeout', delay_time*1200,
                     () => {
                         this._preventHide = false;
                         this._intellihideBlock = false;
                         this._handleMenus();
-                        this._shortcutTimeout = null;
                         return false;
                     }
                 );
@@ -308,7 +384,8 @@ export class PanelVisibilityManager {
                     this._settings.get_double('animation-time-autohide'),
                     "shortcut"
                 );
-                this._shortcutTimeout = true;
+                // Nothing to undo, the entry marks the shortcut as pressed.
+                this._signalsHandler.addUndo('shortcutTimeout', () => {});
             }
             // Key-focus the "Activities" button
             //  Currently, this is deactivated because we can't make sure that
@@ -334,22 +411,24 @@ export class PanelVisibilityManager {
             this._settings.get_int('pressure-timeout'),
             ShellActionMode.NORMAL
         );
-        this._panelPressure.connect(
-            'trigger',
-            (barrier) => {
-                if (
-                    Main.layoutManager.primaryMonitor?.inFullscreen
-                    && !this._settings.get_boolean(
-                        'mouse-sensitive-fullscreen-window'
-                    )
-                ) {
-                    return;
-                }
-                this.show(
-                    this._settings.get_double('animation-time-autohide'),
-                    "mouse-enter"
-                );
-            }
+        this._signalsHandler.addWithLabel(
+            "panelPressure",
+            [
+                this._panelPressure,
+                'trigger',
+                (barrier) => {
+                    if (
+                        Main.layoutManager.primaryMonitor?.inFullscreen
+                        && !this._settings.get_boolean('mouse-sensitive-fullscreen-window')
+                    ) {
+                        return;
+                    }
+                    this.show(
+                        this._settings.get_double('animation-time-autohide'),
+                        "mouse-enter"
+                    );
+                },
+            ],
         );
         let anchor_y = PanelBox.get_pivot_point()[1],
             direction = Meta.BarrierDirection.POSITIVE_Y;
@@ -389,12 +468,15 @@ export class PanelVisibilityManager {
           }
         }
         if(HotCorner){
+          this._signalsHandler.disconnectWithLabel('hotCornerBarrierTimeout');
           if(!panel_hidden || this._settings.get_boolean('hot-corner')) {
               HotCorner.setBarrierSize(PanelBox.height);
           } else {
-              GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, function () {
-                  HotCorner.setBarrierSize(0)
-              });
+              this._signalsHandler.addTimeout(
+                  'hotCornerBarrierTimeout', 100, function () {
+                      HotCorner.setBarrierSize(0)
+                  }
+              );
           }
         }
     }
@@ -417,11 +499,8 @@ export class PanelVisibilityManager {
 
     _updateSearchEntryPadding() {
         if (!_searchEntryBin) return;
-        if (!Main.layoutManager.primaryMonitor) return;
-        const scale = Main.layoutManager.primaryMonitor.geometry_scale;
-        const offset = PanelBox.height / scale;
         _searchEntryBin.set_style(
-            this._showInOverview ? `padding-top: ${offset}px;` : null
+            this._showInOverview ? `padding-top: ${PanelBox.height}px;` : null
         );
     }
 
@@ -523,7 +602,6 @@ export class PanelVisibilityManager {
     }
 
     _bindSettingsChanges() {
-        this._signalsHandler = new Convenience.GlobalSignalsHandler();
         this._signalsHandler.addWithLabel("settings",
             [
                 this._settings,
@@ -564,19 +642,18 @@ export class PanelVisibilityManager {
     }
 
     destroy() {
-        if (this._bindTimeoutId) {
-            GLib.source_remove(this._bindTimeoutId);
-            this._bindTimeoutId = 0;
-        }
         this._intellihide.destroy();
         this._signalsHandler.destroy();
         Main.wm.removeKeybinding("shortcut-keybind");
         this._disablePressureBarrier();
+        this._releaseBlocker();
         if (_searchEntryBin) {
           _searchEntryBin.style = null;
         }
 
         MessageTray._bannerBin.ease = this._oldEase;
+        Main.panel.toggleQuickSettings = this._oldToggleQuickSettings;
+        Main.panel.toggleCalendar = this._oldToggleCalendar;
         this.show(0, "destroy");
         this._setUnredirectDisabled(false);
 

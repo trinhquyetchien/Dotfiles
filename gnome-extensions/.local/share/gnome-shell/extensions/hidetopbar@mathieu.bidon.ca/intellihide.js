@@ -66,12 +66,11 @@ export const handledWindowTypes = [
  */
 export class Intellihide extends Signals.EventEmitter {
 
-    constructor(settings, monitorIndex) {
+    constructor(settings) {
         super();
 
         // Load settings
         this._settings = settings;
-        this._monitorIndex = monitorIndex;
 
         this._signalsHandler = new Convenience.GlobalSignalsHandler();
         this._tracker = Shell.WindowTracker.get_default();
@@ -87,9 +86,9 @@ export class Intellihide extends Signals.EventEmitter {
         this._targetBox = null;
 
         this._checkOverlapTimeoutContinue = false;
-        this._checkOverlapTimeoutId = 0;
 
-        this._trackedWindows = new Map();
+        // Handlers on window actors, labelled by the actor
+        this._windowSignals = new Convenience.GlobalSignalsHandler();
 
         // Connect global signals
         this._signalsHandler.add([
@@ -148,15 +147,9 @@ export class Intellihide extends Signals.EventEmitter {
     disable() {
         this._isEnabled = false;
 
-        for (let wa of this._trackedWindows.keys()) {
-            this._removeWindowSignals(wa);
-        }
-        this._trackedWindows.clear();
+        this._windowSignals.destroy();
 
-        if (this._checkOverlapTimeoutId > 0) {
-            GLib.source_remove(this._checkOverlapTimeoutId);
-            this._checkOverlapTimeoutId = 0;
-        }
+        this._signalsHandler.disconnectWithLabel("checkOverlapTimeout");
     }
 
     _windowCreated(display, metaWindow) {
@@ -166,18 +159,12 @@ export class Intellihide extends Signals.EventEmitter {
     _addWindowSignals(wa) {
         if (!this._handledWindow(wa))
             return;
-        let signalId = wa.connect(
-            'notify::allocation', this._checkOverlap.bind(this)
+        // enable() runs again when the settings change
+        this._windowSignals.disconnectWithLabel(wa);
+        this._windowSignals.addWithLabel(wa,
+            [wa, 'notify::allocation', this._checkOverlap.bind(this)],
+            [wa, 'destroy', () => this._windowSignals.disconnectWithLabel(wa)]
         );
-        this._trackedWindows.set(wa, signalId);
-        wa.connect('destroy', this._removeWindowSignals.bind(this));
-    }
-
-    _removeWindowSignals(wa) {
-        if (this._trackedWindows.get(wa)) {
-           wa.disconnect(this._trackedWindows.get(wa));
-           this._trackedWindows.delete(wa);
-        }
     }
 
     updateTargetBox(box) {
@@ -199,24 +186,26 @@ export class Intellihide extends Signals.EventEmitter {
             return;
 
         /* Limit the number of calls to the doCheckOverlap function */
-        if (this._checkOverlapTimeoutId) {
+        if (this._signalsHandler.has("checkOverlapTimeout")) {
             this._checkOverlapTimeoutContinue = true;
             return
         }
 
         this._doCheckOverlap();
 
-        this._checkOverlapTimeoutId = GLib.timeout_add(
-            GLib.PRIORITY_DEFAULT, INTELLIHIDE_CHECK_INTERVAL, () => {
-            this._doCheckOverlap();
-            if (this._checkOverlapTimeoutContinue) {
-                this._checkOverlapTimeoutContinue = false;
-                return GLib.SOURCE_CONTINUE;
-            } else {
-                this._checkOverlapTimeoutId = 0;
-                return GLib.SOURCE_REMOVE;
+        this._signalsHandler.addTimeout(
+            "checkOverlapTimeout", INTELLIHIDE_CHECK_INTERVAL,
+            () => {
+                this._doCheckOverlap();
+                if (this._checkOverlapTimeoutContinue) {
+                    this._checkOverlapTimeoutContinue = false;
+                    return GLib.SOURCE_CONTINUE;
+                } else {
+                    this._signalsHandler.disconnectWithLabel("checkOverlapTimeout");
+                    return GLib.SOURCE_REMOVE;
+                }
             }
-        });
+        );
     }
 
     _doCheckOverlap() {
@@ -230,18 +219,21 @@ export class Intellihide extends Signals.EventEmitter {
         if (windows.length > 0) {
             /*
              * Get the top window on the monitor where the dock is placed.
+             * That is the primary monitor, read here and not stored: unplugging
+             * a monitor renumbers the rest.
              * The idea is that we dont want to overlap with the windows of the
              * topmost application, event is it's not the focused app -- for
              * instance because in multimonitor the user select a window in the
              * secondary monitor.
              */
 
+            const primaryIndex = Main.layoutManager.primaryIndex;
             let topWindow = null;
             for (let i = windows.length - 1; i >= 0; i--) {
                 let meta_win = windows[i].get_meta_window();
                 if (
                     this._handledWindow(windows[i])
-                    && (meta_win.get_monitor() == this._monitorIndex)
+                    && (meta_win.get_monitor() == primaryIndex)
                 ) {
                     topWindow = meta_win;
                     break;

@@ -16,6 +16,13 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 let TOOLTIP_BROWSE_ID = 0;
 let TOOLTIP_BROWSE_MODE = false;
 
+function removeBrowseTimeout() {
+	if (TOOLTIP_BROWSE_ID) {
+		GLib.source_remove(TOOLTIP_BROWSE_ID);
+		TOOLTIP_BROWSE_ID = 0;
+	}
+}
+
 export const Tooltip = class Tooltip {
 
 	constructor(params) {
@@ -206,11 +213,11 @@ export const Tooltip = class Tooltip {
 		// Enable browse mode
 		TOOLTIP_BROWSE_MODE = true;
 
-		if (TOOLTIP_BROWSE_ID) {
-			GLib.source_remove(TOOLTIP_BROWSE_ID);
-			TOOLTIP_BROWSE_ID = 0;
-		}
+		removeBrowseTimeout();
+		this._removeHoverTimeout();
+	}
 
+	_removeHoverTimeout() {
 		if (this._hoverTimeoutId) {
 			GLib.source_remove(this._hoverTimeoutId);
 			this._hoverTimeoutId = 0;
@@ -233,19 +240,15 @@ export const Tooltip = class Tooltip {
 			});
 		}
 
+		removeBrowseTimeout();
 		TOOLTIP_BROWSE_ID = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
 			TOOLTIP_BROWSE_MODE = false;
 			TOOLTIP_BROWSE_ID = 0;
 			return false;
 		});
 
-		if (this._hoverTimeoutId) {
-			GLib.source_remove(this._hoverTimeoutId);
-			this._hoverTimeoutId = 0;
-		}
-
+		this._removeHoverTimeout();
 		this._showing = false;
-		this._hoverTimeoutId = 0;
 	}
 
 	_onHover() {
@@ -280,14 +283,7 @@ export const Tooltip = class Tooltip {
 			this._bin.destroy();
 		}
 
-		if (TOOLTIP_BROWSE_ID) {
-			GLib.source_remove(TOOLTIP_BROWSE_ID);
-			TOOLTIP_BROWSE_ID = 0;
-		}
-
-		if (this._hoverTimeoutId) {
-			GLib.source_remove(this._hoverTimeoutId);
-			this._hoverTimeoutId = 0;
-		}
+		removeBrowseTimeout();
+		this._removeHoverTimeout();
 	}
 };

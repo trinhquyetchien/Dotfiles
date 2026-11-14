@@ -1,3 +1,4 @@
+import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
 const DASH_TO_DOCK_CONTAINER = 'dashtodockContainer';
@@ -9,9 +10,11 @@ function find_child(actor, name) {
     return actor.get_children().find(child => child.get_name() === name);
 }
 
+// look-alikes such as dash2dock-lite reuse the name and class but only stub the slider
 function is_dash_to_dock(actor) {
     return actor.get_name() === DASH_TO_DOCK_CONTAINER &&
-        actor.constructor.name === 'DashToDock';
+        actor.constructor.name === 'DashToDock' &&
+        actor._slider instanceof Clutter.Actor;
 }
 
 function is_dhruva(actor) {
@@ -90,21 +93,14 @@ function resolve_native_dash(container) {
             return null;
         ancestor = ancestor.get_parent();
     }
-    let sibling = container;
-    let parent = sibling.get_parent();
-    while (parent && !['uiGroup', 'overviewGroup'].includes(parent.get_name())) {
-        sibling = parent;
-        parent = parent.get_parent();
-    }
-    if (!parent)
-        return null;
+    // inside the dash, so the blur shows what the overview paints below it, like the app grid
     return {
         content: container,
-        content_parent: parent,
+        content_parent: container,
         background: container._background,
         slider: null,
         theme_manager: null,
-        sibling,
+        sibling: container._background,
     };
 }
 
